@@ -28,14 +28,22 @@ export class ApprovalController {
   /**
    * PATCH /api/v1/approvals/:app_id -> Process operational state adjustments (APPROVE/REJECT/DRAFT)
    */
-  @Patch(':app_id')
-  @HttpCode(HttpStatus.OK)
-  async updateApprovalState(
-    @Param('app_id') appId: string,
-    @Body() body: UpdateApprovalDto,
-    @Headers('x-tenant-id') tenantId: string
-  ) {
-    this.verifyTenantId(tenantId);
-    return await this.approvalService.processWorkflowAction(appId, body.action, body.feedback);
-  }
+@Patch(':app_id')
+@HttpCode(HttpStatus.OK)
+async updateApprovalState(
+  @Param('app_id') appId: string,
+  @Body() body: UpdateApprovalDto,
+  @Headers('x-tenant-id') tenantId: string
+) {
+  this.verifyTenantId(tenantId);
+  
+  // Normalize the action to uppercase and cast to the required type
+  const normalizedAction = body.action.toUpperCase() as 'APPROVE' | 'REJECT' | 'DRAFT';
+
+  return await this.approvalService.processWorkflowAction(
+    appId, 
+    normalizedAction, 
+    body.feedback
+  );
+}
 }

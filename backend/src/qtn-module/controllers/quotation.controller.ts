@@ -160,7 +160,7 @@ export class QuotationController {
   /**
    * POST /quotes/:id/workflow-action -> Process workflow triggers (APPROVE / REJECT / DRAFT)
    */
-  @Post(':id/workflow-action')
+@Post(':id/workflow-action')
   @HttpCode(HttpStatus.OK)
   async handleWorkflowAction(
     @Param('id') id: string,
@@ -170,11 +170,20 @@ export class QuotationController {
   ) {
     this.verifyTenantId(tenantId);
     
-    if (!action) {
-      throw new BadRequestException('Action field (APPROVE, REJECT, or DRAFT) is required.');
+    // 1. Define allowed actions
+    const allowedActions = ['APPROVE', 'REJECT', 'DRAFT'];
+
+    // 2. Validate existence and validity
+    if (!action || !allowedActions.includes(action.toUpperCase())) {
+      throw new BadRequestException('Action must be one of: APPROVE, REJECT, DRAFT');
     }
     
-    return await this.approvalService.processWorkflowAction(id, action, feedback);
+    // 3. Call service with type assertion
+    return await this.approvalService.processWorkflowAction(
+      id, 
+      action.toUpperCase() as 'APPROVE' | 'REJECT' | 'DRAFT', 
+      feedback
+    );
   }
 
 
