@@ -8,13 +8,13 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.QtnModule = void 0;
 const common_1 = require("@nestjs/common");
-const quotation_controller_1 = require("./controllers/quotation.controller");
-const dashboard_controller_1 = require("./controllers/dashboard.controller");
-const approvals_controller_1 = require("./controllers/approvals.controller");
-const quotation_dashboard_service_1 = require("./services/quotation-dashboard.service");
-const quotation_service_1 = require("./services/quotation.service");
-const approval_service_1 = require("./services/approval.service");
-const pricing_service_1 = require("./services/pricing.service");
+const quotation_controller_1 = require("../quotation/controllers/quotation.controller");
+const dashboard_controller_1 = require("../quotation/controllers/dashboard.controller");
+const approvals_controller_1 = require("../approval/controllers/approvals.controller");
+const quotation_dashboard_service_1 = require("../quotation/services/quotation-dashboard.service");
+const quotation_service_1 = require("../quotation/services/quotation.service");
+const approval_service_1 = require("../approval/services/approval.service");
+const pricing_service_1 = require("../pricing/services/pricing.service");
 let QtnModule = class QtnModule {
 };
 exports.QtnModule = QtnModule;

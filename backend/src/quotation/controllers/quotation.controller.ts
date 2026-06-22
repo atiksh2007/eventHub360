@@ -1,0 +1,236 @@
+import { Controller, Get, Post, Delete, Body, HttpCode, HttpStatus, Query, Param, Headers, BadRequestException, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../../shared/auth/jwt-auth.guard';
+import { QuotationService } from '../services/quotation.service';
+import { CreateQuoteDto } from '../dto/create-quote.dto';
+import { AddLineItemsDto } from '../dto/add-item.dto';
+import { CalculateQuoteDto } from '../../pricing/dto/calculate-quote.dto';
+import { CreateApprovalDto } from '../../approval/dto/create-approval.dto';
+import { CreateRateCardDto } from '../../pricing/dto/create-rate-card.dto';
+import { LiveQuotationsResponse, QuotationDetailResponse, PriceBookResponse, RateCardItem } from '../interfaces/quotation.interface';
+import { ApprovalService } from '../../approval/services/approval.service';
+
+@Controller('quotes')
+// @UseGuards(JwtAuthGuard)
+export class QuotationController {
+  constructor(
+    private readonly qtnService: QuotationService,
+    private readonly approvalService: ApprovalService
+  ) {}
+
+  // Enforces Tenant ID Claim check on endpoints
+  private verifyTenantId(tenantId?: string): void {
+    if (!tenantId || tenantId.trim() === '') {
+      throw new BadRequestException('Tenant ID claim is required for authentication and resource isolation.');
+    }
+  }
+
+  /**
+   * POST /api/v1/quotes -> Initialize a blank structured quote workspace
+   */
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  async createQuote(
+    @Body() dto: CreateQuoteDto,
+    @Headers('x-tenant-id') tenantId: string
+  ): Promise<QuotationDetailResponse> {
+    this.verifyTenantId(tenantId);
+    return await this.qtnService.createBlankQuote(dto);
+  }
+
+  /**
+   * PUT /api/v1/quotes/:id -> Update quote basic metadata
+   */
+  @Post(':id/update') // Or @Put(':id'), using Post + /update for consistency with other routes here if preferred, but let's use @Put(':id') or @Post(':id/update')
+  @HttpCode(HttpStatus.OK)
+  async updateQuote(
+    @Param('id') id: string,
+    @Body() dto: CreateQuoteDto,
+    @Headers('x-tenant-id') tenantId: string
+  ) {
+    this.verifyTenantId(tenantId);
+    return await this.qtnService.updateQuote(id, dto);
+  }
+
+  /**
+   * POST /api/v1/quotes/:id/versions/:vid/items -> Validate state lock conditions and append array elements safely
+   */
+  @Post(':id/versions/:vid/items')
+  @HttpCode(HttpStatus.OK)
+  async appendItems(
+    @Param('id') id: string,
+    @Param('vid') vid: string,
+    @Body() dto: AddLineItemsDto,
+    @Headers('x-tenant-id') tenantId: string
+  ): Promise<QuotationDetailResponse> {
+    this.verifyTenantId(tenantId);
+    return await this.qtnService.appendItemsToVersion(id, vid, dto.items);
+  }
+
+  /**
+   * PUT /api/v1/quotes/:id/items -> Synchronize/Overwrite version line items for full CRUD edit capabilities
+   */
+  @Post(':id/sync-items')
+  @HttpCode(HttpStatus.OK)
+  async syncItems(
+    @Param('id') id: string,
+    @Body() dto: { items: any[] },
+    @Headers('x-tenant-id') tenantId: string
+  ): Promise<QuotationDetailResponse> {
+    this.verifyTenantId(tenantId);
+    return await this.qtnService.syncItems(id, dto.items);
+  }
+
+  /**
+   * POST /api/v1/quotes/:id/calculate -> Force manual execution loop of pricing calculations
+   */
+  @Post(':id/calculate')
+  @HttpCode(HttpStatus.OK)
+  async calculateQuote(
+    @Param('id') id: string,
+    @Body() dto: CalculateQuoteDto,
+    @Headers('x-tenant-id') tenantId: string
+  ) {
+    this.verifyTenantId(tenantId);
+    return await this.qtnService.forceCalculation(id, dto);
+  }
+
+  /**
+   * POST /api/v1/quotes/:id/approvals -> Create approval request wrapper
+   */
+  @Post(':id/approvals')
+  @HttpCode(HttpStatus.CREATED)
+  async requestApproval(
+    @Param('id') id: string,
+    @Body() dto: CreateApprovalDto,
+    @Headers('x-tenant-id') tenantId: string
+  ) {
+    this.verifyTenantId(tenantId);
+    return await this.qtnService.createApprovalRequest(id, dto);
+  }
+
+  /**
+   * POST /api/v1/quotes/:id/publish -> Simulate proposal payload lock
+   */
+  @Post(':id/publish')
+  @HttpCode(HttpStatus.OK)
+  async publishProposal(
+    @Param('id') id: string,
+    @Headers('x-tenant-id') tenantId: string
+  ) {
+    this.verifyTenantId(tenantId);
+    return await this.qtnService.publishProposal(id);
+  }
+
+  /**
+   * DELETE /api/v1/quotes/:id -> Delete a quote and its items
+   */
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  async deleteQuote(
+    @Param('id') id: string,
+    @Headers('x-tenant-id') tenantId: string
+  ) {
+    this.verifyTenantId(tenantId);
+    return await this.qtnService.deleteQuote(id);
+  }
+
+  // ==========================================
+  // HISTORICAL & UTILITY PATHS
+  // ==========================================
+  
+  @Get('history-pricebook')
+  @HttpCode(HttpStatus.OK)
+  async getHistoryPriceBook(
+    @Query('category') category: string,
+    @Headers('x-tenant-id') tenantId: string
+  ): Promise<PriceBookResponse> {
+    this.verifyTenantId(tenantId);
+    return await this.qtnService.getQuotationHistoryPriceBook(category);
+  }
+
+  @Post('history-pricebook/create')
+  @HttpCode(HttpStatus.CREATED)
+  async createNewRateCard(
+    @Body() createRateDto: CreateRateCardDto,
+    @Headers('x-tenant-id') tenantId: string
+  ): Promise<RateCardItem> {
+    this.verifyTenantId(tenantId);
+    return await this.qtnService.createPriceBookRate(createRateDto);
+  }
+
+  @Get('live-list')
+  @HttpCode(HttpStatus.OK)
+  async getLiveList(
+    @Query('status') status: string,
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Headers('x-tenant-id') tenantId: string
+  ): Promise<LiveQuotationsResponse> {
+    this.verifyTenantId(tenantId);
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    return await this.qtnService.getLiveQuotations(status, pageNum, limitNum);
+  }
+
+  @Get('details/:id')
+  @HttpCode(HttpStatus.OK)
+  async getDetails(
+    @Param('id') id: string,
+    @Headers('x-tenant-id') tenantId: string
+  ): Promise<QuotationDetailResponse> {
+    this.verifyTenantId(tenantId);
+    return await this.qtnService.getQuotationDetails(id);
+  }
+
+
+
+
+  // ==========================================
+  // WORKFLOW & APPROVALS LAYER
+  // ==========================================
+
+  /**
+   * GET /quotes/:id/workflow-track -> Fetch real-time visual status steps and logs
+   */
+  @Get(':id/workflow-track')
+  @HttpCode(HttpStatus.OK)
+  async getWorkflowTrack(
+    @Param('id') id: string,
+    @Headers('x-tenant-id') tenantId: string
+  ) {
+    this.verifyTenantId(tenantId);
+    return await this.approvalService.getApprovalDetails(id);
+  }
+
+  /**
+   * POST /quotes/:id/workflow-action -> Process workflow triggers (APPROVE / REJECT / DRAFT)
+   */
+@Post(':id/workflow-action')
+  @HttpCode(HttpStatus.OK)
+  async handleWorkflowAction(
+    @Param('id') id: string,
+    @Body('action') action: string,
+    @Body('feedback') feedback: string,
+    @Headers('x-tenant-id') tenantId: string
+  ) {
+    this.verifyTenantId(tenantId);
+    
+    // 1. Define allowed actions
+    const allowedActions = ['APPROVE', 'REJECT', 'DRAFT'];
+
+    // 2. Validate existence and validity
+    if (!action || !allowedActions.includes(action.toUpperCase())) {
+      throw new BadRequestException('Action must be one of: APPROVE, REJECT, DRAFT');
+    }
+    
+    // 3. Call service with type assertion
+    return await this.approvalService.processWorkflowAction(
+      id, 
+      action.toUpperCase() as 'APPROVE' | 'REJECT' | 'DRAFT', 
+      feedback
+    );
+  }
+
+
+
+}

@@ -9,7 +9,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
-const qtn_module_1 = require("./qtn-module/qtn.module");
+const prisma_module_1 = require("./prisma/prisma.module");
+const quotation_module_1 = require("./quotation/quotation.module");
+const pricing_module_1 = require("./pricing/pricing.module");
+const approval_module_1 = require("./approval/approval.module");
+const proposal_module_1 = require("./proposal/proposal.module");
+const bullmq_1 = require("@nestjs/bullmq");
+const auth_module_1 = require("./shared/auth/auth.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -17,7 +23,18 @@ exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
             config_1.ConfigModule.forRoot({ isGlobal: true }),
-            qtn_module_1.QtnModule,
+            prisma_module_1.PrismaModule,
+            bullmq_1.BullModule.forRoot({
+                connection: {
+                    host: process.env.REDIS_HOST || '127.0.0.1',
+                    port: parseInt(process.env.REDIS_PORT || '6379'),
+                },
+            }),
+            auth_module_1.AuthModule,
+            quotation_module_1.QuotationModule,
+            pricing_module_1.PricingModule,
+            approval_module_1.ApprovalModule,
+            proposal_module_1.ProposalModule,
         ],
     })
 ], AppModule);
