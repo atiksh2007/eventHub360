@@ -16,6 +16,13 @@ model Quotation {
   version        Int        @default(1)
   currency       String     @db.Char(3) @default("USD")
   
+  title          String?    @db.VarChar(100)
+  client_tier    String?    @db.VarChar(50)
+  event_date     String?    @db.VarChar(50)
+  expected_guests String?   @db.VarChar(50)
+  discount_global Decimal   @db.Decimal(14, 2) @default(0)
+  charge_service  Decimal   @db.Decimal(14, 2) @default(0)
+
   subtotal       Decimal    @db.Decimal(14, 2)
   tax_total      Decimal    @db.Decimal(14, 2)
   total          Decimal    @db.Decimal(14, 2)
@@ -57,6 +64,13 @@ model QuotationLine {
   cost           Decimal    @db.Decimal(14, 2) 
   amount         Decimal    @db.Decimal(14, 2) 
   tax_rule_id    BigInt
+
+  markup_pct     Decimal    @db.Decimal(5, 2) @default(0)
+  discount_pct   Decimal    @db.Decimal(5, 2) @default(0)
+  tax_rate_pct   Decimal    @db.Decimal(5, 2) @default(18)
+  cgst           Decimal    @db.Decimal(14, 2) @default(0)
+  sgst           Decimal    @db.Decimal(14, 2) @default(0)
+  igst           Decimal    @db.Decimal(14, 2) @default(0)
 
   // Implicit Tenant Columns
   tenant_id      String     @db.VarChar(50)

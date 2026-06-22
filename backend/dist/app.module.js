@@ -9,7 +9,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
-const qtn_module_1 = require("./qtn-module/qtn.module");
+const prisma_module_1 = require("./prisma/prisma.module");
+const quotation_module_1 = require("./quotation/quotation.module");
+const pricing_module_1 = require("./pricing/pricing.module");
+const approval_module_1 = require("./approval/approval.module");
+const proposal_module_1 = require("./proposal/proposal.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -17,7 +21,11 @@ exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
             config_1.ConfigModule.forRoot({ isGlobal: true }),
-            qtn_module_1.QtnModule,
+            prisma_module_1.PrismaModule,
+            quotation_module_1.QuotationModule,
+            pricing_module_1.PricingModule,
+            approval_module_1.ApprovalModule,
+            proposal_module_1.ProposalModule,
         ],
     })
 ], AppModule);

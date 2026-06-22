@@ -1,16 +1,27 @@
 // src/app.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { QtnModule } from './qtn-module/qtn.module';
 import { PrismaModule } from './prisma/prisma.module';
-//import { QuotationModule } from './modules/quotation/quotation.module';
+
+// Import your new modular contexts
+import { QuotationModule } from './quotation/quotation.module';
+import { PricingModule } from './pricing/pricing.module';
+import { ApprovalModule } from './approval/approval.module';
+import { ProposalModule } from './proposal/proposal.module';
+
 @Module({
   imports: [
-    // Ingests local configuration keys from your .env file securely
+    // Global config setup
     ConfigModule.forRoot({ isGlobal: true }),
-    QtnModule,
-    PrismaModule
-    //QuotationModule,
+    
+    // Core database layer
+    PrismaModule,
+    
+    // Domain-Driven Design (DDD) Bounded Contexts
+    QuotationModule,
+    PricingModule,
+    ApprovalModule,
+    ProposalModule,
   ],
 })
 export class AppModule {}

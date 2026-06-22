@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
-import { QuotationController } from './controllers/quotation.controller';
-import { DashboardController } from './controllers/dashboard.controller';
-import { ApprovalController } from './controllers/approvals.controller'; 
+import { QuotationController } from '../quotation/controllers/quotation.controller';
+import { DashboardController } from '../quotation/controllers/dashboard.controller';
+import { ApprovalController } from '../approval/controllers/approvals.controller'; 
 
-import { QuotationDashboardService } from './services/quotation-dashboard.service';
-import { QuotationService } from './services/quotation.service';
-import { ApprovalService } from './services/approval.service';
-import { PricingService } from './services/pricing.service';
+import { QuotationDashboardService } from '../quotation/services/quotation-dashboard.service';
+import { QuotationService } from '../quotation/services/quotation.service';
+import { ApprovalService } from '../approval/services/approval.service';
+import { PricingService } from '../pricing/services/pricing.service';
 
 @Module({
   controllers: [
