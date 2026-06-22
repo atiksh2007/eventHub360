@@ -15,6 +15,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.QuotationService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
+const bullmq_1 = require("bullmq");
+const bullmq_2 = require("@nestjs/bullmq");
 const pricing_service_1 = require("../../pricing/services/pricing.service");
 const approval_service_1 = require("../../approval/services/approval.service");
 function serializeBigInt(obj) {
@@ -34,13 +36,38 @@ function serializeBigInt(obj) {
     return obj;
 }
 let QuotationService = class QuotationService {
-    constructor(pricingService, approvalService, prisma) {
+    constructor(pricingService, approvalService, prisma, quotationQueue) {
         this.pricingService = pricingService;
         this.approvalService = approvalService;
         this.prisma = prisma;
+        this.quotationQueue = quotationQueue;
+        this.mockVenues = [
+            { id: "1", title: "Grand Sapphire Ballroom", tag: "Premium Venue", capacityDetails: "Capacity: up to 500 guests. Features 360-degree mapping and dual staircases.", basePricing: "$12,500", pricingUnit: "day", adjustmentLabel: "+15% Service", adjustmentSubtext: "Estimated Total", estimatedTotal: "$14,375", imageUrl: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+            { id: "2", title: "Horizon Vista Terrace", tag: "Sky Deck", capacityDetails: "Rooftop access with panoramic city views. Features fire pits and glass railings.", basePricing: "$5,200", pricingUnit: "session", adjustmentLabel: "+10% Service", adjustmentSubtext: "Estimated Total", estimatedTotal: "$5,720", imageUrl: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+            { id: "3", title: "Innovation Tech Hub", tag: "Conference", capacityDetails: "Theater-style seating for 200. HD projectors, live-streaming ready.", basePricing: "$8,900", pricingUnit: "day", adjustmentLabel: "Included Service", adjustmentSubtext: "Flat Rate", estimatedTotal: "$8,900", imageUrl: "https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+            { id: "4", title: "The Verdant Atrium", tag: "Eco-Lounge", capacityDetails: "Indoor garden setting with sustainable climate control and living walls.", basePricing: "$4,500", pricingUnit: "day", adjustmentLabel: "+20% Seasonal", adjustmentSubtext: "Estimated Total", estimatedTotal: "$5,400", imageUrl: "https://images.unsplash.com/photo-1505843513577-22bb7d21e455?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+            { id: "5", title: "The Reserve Cellar", tag: "Private Reserve", capacityDetails: "Intimate underground tasting room. Private barrel backdrop.", basePricing: "$2,800", pricingUnit: "night", adjustmentLabel: "Sommelier Incl.", adjustmentSubtext: "Exclusive Access", estimatedTotal: "$2,800", imageUrl: "https://images.unsplash.com/photo-1543362906-acfc16c67564?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+            { id: "6", title: "Manor Estate Tent", tag: "Estate Grounds", capacityDetails: "All-weather luxury marquee on estate lawn. Floor-to-ceiling windows.", basePricing: "$15,000", pricingUnit: "event", adjustmentLabel: "+5% Logistics", adjustmentSubtext: "Setup Included", estimatedTotal: "$15,750", imageUrl: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+            { id: "7", title: "Industrial Loft 402", tag: "Urban Chic", capacityDetails: "Flexible studio space for product launches and creative workshops.", basePricing: "$3,200", pricingUnit: "day", adjustmentLabel: "Standard Rate", adjustmentSubtext: "No Surcharge", estimatedTotal: "$3,200", imageUrl: "https://images.unsplash.com/photo-1513694203232-719a280e022f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" }
+        ];
     }
-    async getLiveQuotations(statusFilter, page = 1) {
-        const itemsPerPage = 10;
+    async onModuleInit() {
+        await this.quotationQueue.add('checkExpiry', {}, {
+            repeat: {
+                pattern: '0 */12 * * *'
+            }
+        });
+    }
+    async deleteQuote(id) {
+        const qid = BigInt(id);
+        const quote = await this.prisma.quotation.findUnique({ where: { quotation_id: qid } });
+        if (!quote)
+            throw new common_1.NotFoundException('Quote not found');
+        await this.prisma.quotation.delete({ where: { quotation_id: qid } });
+        return { success: true, message: `Quotation ${id} deleted successfully.` };
+    }
+    async getLiveQuotations(statusFilter, page = 1, limit = 10) {
+        const itemsPerPage = limit;
         const skip = (page - 1) * itemsPerPage;
         const whereCondition = { is_active: true };
         if (statusFilter && statusFilter !== 'all') {
@@ -127,14 +154,18 @@ let QuotationService = class QuotationService {
         const totalNum = Number(quotation.total);
         const marginNum = Number(quotation.margin);
         const marginCalculated = totalNum > 0 ? ((marginNum / totalNum) * 100).toFixed(1) : "0.0";
+        const meta = typeof quotation.metadata === 'object' ? quotation.metadata : {};
         return {
             quoteId: `Q-${quotation.quotation_id.toString()}`,
             title: quotation.title || `Event Plan Quote for Lead #${quotation.lead_id.toString()}`,
+            clientName: meta?.clientName || (quotation.title ? quotation.title.split(' for ')[1] : undefined),
+            eventType: meta?.eventType || (quotation.title ? quotation.title.split(' for ')[0] : undefined),
+            eventDate: quotation.event_date || 'TBD',
+            expectedGuests: quotation.expected_guests || 'TBD',
             status: quotation.status,
-            clientTier: quotation.client_tier || "NEW CLIENT",
-            lastEdited: "Synchronized with Database",
-            eventDate: quotation.event_date || "TBD",
-            expectedGuests: quotation.expected_guests || "TBD",
+            clientTier: quotation.client_tier || 'NEW CLIENT',
+            lastEdited: quotation.updated_at.toLocaleDateString(),
+            metadata: meta || {},
             sections: sections,
             summary: {
                 subtotal: `$${subtotalNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
@@ -145,32 +176,72 @@ let QuotationService = class QuotationService {
             }
         };
     }
+    async updateQuote(id, dto) {
+        try {
+            const qid = BigInt(id.replace(/\D/g, ''));
+            const quote = await this.prisma.quotation.findUnique({ where: { quotation_id: qid } });
+            if (!quote)
+                throw new common_1.NotFoundException('Quote not found');
+            const titleStr = `${dto.eventType || 'Event'} for ${dto.clientName || 'Unknown Client'}`;
+            const mergedMetadata = {
+                ...(typeof quote.metadata === 'object' ? quote.metadata : {}),
+                ...(typeof dto.metadata === 'object' ? dto.metadata : {}),
+                clientName: dto.clientName || quote.metadata?.clientName,
+                eventType: dto.eventType || quote.metadata?.eventType,
+            };
+            await this.prisma.quotation.update({
+                where: { quotation_id: qid },
+                data: {
+                    title: titleStr,
+                    event_date: dto.eventDate || quote.event_date,
+                    expected_guests: dto.expectedGuests ? dto.expectedGuests : quote.expected_guests,
+                    metadata: mergedMetadata
+                }
+            });
+            return { success: true, message: `Quotation ${id} updated.` };
+        }
+        catch (error) {
+            console.error('Error in updateQuote:', error);
+            throw new common_1.InternalServerErrorException(`Update failed: ${error.message}`);
+        }
+    }
     async createNewQuotation(dto) {
-        const expiresAt = new Date();
-        expiresAt.setMonth(expiresAt.getMonth() + 1);
-        const createdQuote = await this.prisma.quotation.create({
-            data: {
-                company_id: BigInt(1),
-                lead_id: BigInt(Math.floor(100 + Math.random() * 900)),
-                version: 1,
-                currency: 'USD',
-                title: dto.clientName ? `${dto.eventType} for ${dto.clientName}` : "Untitled Event Plan",
-                client_tier: "NEW CLIENT",
-                event_date: dto.eventDate || "TBD",
-                expected_guests: dto.expectedGuests || "TBD",
-                discount_global: 0,
-                charge_service: 0,
-                subtotal: 0,
-                tax_total: 0,
-                total: 0,
-                cost_total: 0,
-                margin: 0,
-                status: 'DRAFT',
-                tenant_id: 'system_default',
-                expires_at: expiresAt,
-            }
-        });
-        return this.getQuotationDetails(`Q-${createdQuote.quotation_id.toString()}`);
+        try {
+            const expiresAt = new Date();
+            expiresAt.setMonth(expiresAt.getMonth() + 1);
+            const titleStr = `${dto.eventType || 'Event'} for ${dto.clientName || 'Unknown Client'}`;
+            const mergedMetadata = {
+                ...(typeof dto.metadata === 'object' ? dto.metadata : {}),
+                clientName: dto.clientName,
+                eventType: dto.eventType,
+            };
+            const createdQuote = await this.prisma.quotation.create({
+                data: {
+                    company_id: BigInt(1),
+                    lead_id: BigInt(Math.floor(100 + Math.random() * 900)),
+                    version: 1,
+                    currency: 'USD',
+                    title: titleStr,
+                    client_tier: 'NEW CLIENT',
+                    event_date: dto.eventDate || null,
+                    expected_guests: dto.expectedGuests || null,
+                    subtotal: 0,
+                    tax_total: 0,
+                    total: 0,
+                    cost_total: 0,
+                    margin: 0,
+                    status: 'DRAFT',
+                    expires_at: expiresAt,
+                    tenant_id: 'system_default',
+                    metadata: mergedMetadata
+                }
+            });
+            return await this.getQuotationDetails(`Q-${createdQuote.quotation_id.toString()}`);
+        }
+        catch (error) {
+            console.error('Error in createNewQuotation:', error);
+            throw new common_1.InternalServerErrorException(`Create failed: ${error.message}`);
+        }
     }
     async addItemToQuotation(quoteId, itemDto) {
         const idVal = quoteId.replace(/\D/g, '');
@@ -181,7 +252,7 @@ let QuotationService = class QuotationService {
         if (!quotation) {
             throw new common_1.NotFoundException(`Quotation #${quoteId} not found.`);
         }
-        if (quotation.status === 'PENDING_APPROVAL') {
+        if (quotation.status.toUpperCase() === 'PENDING_APPROVAL') {
             await this.prisma.quotation.update({
                 where: { quotation_id: qId },
                 data: { status: 'DRAFT' }
@@ -267,7 +338,10 @@ let QuotationService = class QuotationService {
         const quotation = await this.prisma.quotation.findUnique({
             where: { quotation_id: qId }
         });
-        if (quotation && quotation.status === 'PENDING_APPROVAL') {
+        if (!quotation) {
+            throw new common_1.NotFoundException(`Quotation #${quoteId} not found.`);
+        }
+        if (quotation.status.toUpperCase() === 'PENDING_APPROVAL') {
             await this.prisma.quotation.update({
                 where: { quotation_id: qId },
                 data: { status: 'DRAFT' }
@@ -283,35 +357,54 @@ let QuotationService = class QuotationService {
             const markup = item?.markupPct !== undefined ? Number(item.markupPct) : 0;
             const discount = item?.discount !== undefined ? Number(item.discount) : (item?.discountPct !== undefined ? Number(item.discountPct) : 0);
             const taxRate = item?.taxRatePct !== undefined ? Number(item.taxRatePct) : 18;
-            const priceBase = cost * (1 + markup / 100);
+            const priceBase = item?.price !== undefined ? Number(item.price) : cost * (1 + markup / 100);
             const priceNet = priceBase * qty * (1 - discount / 100);
             const cgst = priceNet * 0.09;
             const sgst = priceNet * 0.09;
-            await this.prisma.quotationLine.create({
-                data: {
-                    quotation_id: qId,
-                    item_type: item?.categoryName || item?.item_type || "Custom Requirements",
-                    description: item?.description || "Selected Service Package",
-                    qty: qty,
-                    rate: priceBase,
-                    amount: priceNet,
-                    cost: cost,
-                    tax_rule_id: 1n,
-                    markup_pct: markup,
-                    discount_pct: discount,
-                    tax_rate_pct: taxRate,
-                    cgst: cgst,
-                    sgst: sgst,
-                    igst: 0,
-                    tenant_id: 'system_default'
-                }
-            });
+            try {
+                await this.prisma.quotationLine.create({
+                    data: {
+                        quotation_id: qId,
+                        item_type: item?.categoryName || item?.item_type || "Custom Requirements",
+                        description: item?.description || "Selected Service Package",
+                        qty: qty,
+                        rate: priceBase,
+                        amount: priceNet,
+                        cost: cost,
+                        tax_rule_id: 1n,
+                        markup_pct: markup,
+                        discount_pct: discount,
+                        tax_rate_pct: taxRate,
+                        cgst: cgst,
+                        sgst: sgst,
+                        igst: 0,
+                        tenant_id: 'system_default'
+                    }
+                });
+            }
+            catch (err) {
+                console.error("Prisma error inserting line item:", err);
+                throw err;
+            }
         }
         await this.recalculateQuoteTotals(qId);
         return this.getQuotationDetails(quoteId);
     }
     async forceCalculation(quoteId, calcDto) {
         const qId = BigInt(quoteId.replace(/\D/g, ''));
+        const quotation = await this.prisma.quotation.findUnique({
+            where: { quotation_id: qId }
+        });
+        if (!quotation) {
+            throw new common_1.NotFoundException(`Quotation #${quoteId} not found.`);
+        }
+        if (quotation.status.toUpperCase() === 'PENDING_APPROVAL') {
+            await this.prisma.quotation.update({
+                where: { quotation_id: qId },
+                data: { status: 'DRAFT' }
+            });
+            this.approvalService.cancelApprovalWorkflow(`Q-${qId.toString()}`);
+        }
         await this.prisma.quotation.update({
             where: { quotation_id: qId },
             data: {
@@ -323,62 +416,72 @@ let QuotationService = class QuotationService {
         return this.getQuotationDetails(quoteId);
     }
     async createApprovalRequest(quoteId, approvalDto) {
-        const qId = BigInt(quoteId.replace(/\D/g, ''));
-        const quotation = await this.prisma.quotation.findUnique({
-            where: { quotation_id: qId },
-            include: { lines: true }
-        });
-        if (!quotation) {
-            throw new common_1.NotFoundException(`Quotation not found.`);
+        try {
+            const qId = BigInt(quoteId.replace(/\D/g, ''));
+            const quotation = await this.prisma.quotation.findUnique({
+                where: { quotation_id: qId },
+                include: { lines: true }
+            });
+            if (!quotation) {
+                throw new common_1.NotFoundException(`Quotation not found.`);
+            }
+            let sumCost = 0;
+            let sumBase = 0;
+            let sumNet = 0;
+            quotation.lines.forEach((l) => {
+                const qty = Number(l.qty);
+                const cost = Number(l.cost);
+                const markup = Number(l.markup_pct || 0);
+                const disc = Number(l.discount_pct || 0);
+                const base = cost * (1 + markup / 100);
+                const net = base * qty * (1 - disc / 100);
+                sumCost += cost * qty;
+                sumBase += base * qty;
+                sumNet += net;
+            });
+            const marginPct = sumNet > 0 ? ((sumNet - sumCost) / sumNet) * 100 : 0;
+            const discountPct = sumBase > 0 ? ((sumBase - sumNet) / sumBase) * 100 : 0;
+            let tier = '';
+            let statusUpdate = '';
+            let activeStepName = '';
+            let autoPriority = approvalDto.priority || 'STANDARD';
+            if (discountPct <= 5 && marginPct >= 20) {
+                tier = 'Tier 1 (Auto-Approve)';
+                statusUpdate = 'SENT';
+                activeStepName = 'Draft';
+                autoPriority = 'LOW';
+            }
+            else if ((discountPct >= 6 && discountPct <= 15) || (marginPct >= 10 && marginPct <= 19)) {
+                tier = 'Tier 2 (Sales Manager)';
+                statusUpdate = 'PENDING_APPROVAL';
+                activeStepName = 'Manager Review';
+                autoPriority = 'STANDARD';
+            }
+            else {
+                tier = 'Tier 3 (Company Owner Exception)';
+                statusUpdate = 'PENDING_APPROVAL';
+                activeStepName = 'Owner Review';
+                autoPriority = 'HIGH';
+            }
+            await this.prisma.quotation.update({
+                where: { quotation_id: qId },
+                data: { status: statusUpdate }
+            });
+            return await this.approvalService.initializeApprovalTrack({
+                quoteNumber: quoteId,
+                eventName: quotation.title || "Custom Event Package",
+                totalValue: quotation.total.toString(),
+                priority: autoPriority,
+                requester: approvalDto.requester,
+                executiveSummary: approvalDto.executiveSummary || `Approval request for ${quotation.title} with discount ${discountPct.toFixed(1)}% and margin ${marginPct.toFixed(1)}%.`,
+                activeStepName,
+                tier
+            });
         }
-        let sumCost = 0;
-        let sumBase = 0;
-        let sumNet = 0;
-        quotation.lines.forEach((l) => {
-            const qty = Number(l.qty);
-            const cost = Number(l.cost);
-            const markup = Number(l.markup_pct || 0);
-            const disc = Number(l.discount_pct || 0);
-            const base = cost * (1 + markup / 100);
-            const net = base * qty * (1 - disc / 100);
-            sumCost += cost * qty;
-            sumBase += base * qty;
-            sumNet += net;
-        });
-        const marginPct = sumNet > 0 ? ((sumNet - sumCost) / sumNet) * 100 : 0;
-        const discountPct = sumBase > 0 ? ((sumBase - sumNet) / sumBase) * 100 : 0;
-        let tier = '';
-        let statusUpdate = '';
-        let activeStepName = '';
-        if (discountPct <= 5 && marginPct >= 20) {
-            tier = 'Tier 1 (Auto-Approve)';
-            statusUpdate = 'SENT';
-            activeStepName = 'Draft';
+        catch (err) {
+            console.error("Error creating approval request:", err);
+            throw err;
         }
-        else if ((discountPct >= 6 && discountPct <= 15) || (marginPct >= 10 && marginPct <= 19)) {
-            tier = 'Tier 2 (Sales Manager)';
-            statusUpdate = 'PENDING_APPROVAL';
-            activeStepName = 'Manager Review';
-        }
-        else {
-            tier = 'Tier 3 (Company Owner Exception)';
-            statusUpdate = 'PENDING_APPROVAL';
-            activeStepName = 'Owner Review';
-        }
-        await this.prisma.quotation.update({
-            where: { quotation_id: qId },
-            data: { status: statusUpdate }
-        });
-        return this.approvalService.initializeApprovalTrack({
-            quoteNumber: quoteId,
-            eventName: quotation.title || "Custom Event Package",
-            totalValue: `$${Number(quotation.total).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-            priority: approvalDto.priority || 'Medium',
-            requester: approvalDto.requester,
-            executiveSummary: approvalDto.executiveSummary || `Approval request for ${quotation.title} with discount ${discountPct.toFixed(1)}% and margin ${marginPct.toFixed(1)}%.`,
-            activeStepName,
-            tier
-        });
     }
     async publishProposal(quoteId) {
         const qId = BigInt(quoteId.replace(/\D/g, ''));
@@ -391,14 +494,27 @@ let QuotationService = class QuotationService {
     async getQuotationHistoryPriceBook(category) {
         return {
             category: category || "venues",
-            totalItems: 1,
+            totalItems: this.mockVenues.length,
             avgRateLabel: "Avg. Venue Rate",
-            avgRateValue: "$12,500",
-            items: [{ id: "VNU-001", title: "Grand Sapphire Ballroom", tag: "PREMIUM", capacityDetails: "500 guests", basePricing: "$12,500", pricingUnit: "/day", adjustmentLabel: "+15%", adjustmentSubtext: "Total", estimatedTotal: "$14,375", imageUrl: "" }]
+            avgRateValue: "$7,440",
+            items: this.mockVenues
         };
     }
     async createPriceBookRate(dto) {
-        return { id: "VNU-999", title: dto.title, tag: "VENUE", capacityDetails: "", basePricing: "$0", pricingUnit: "/day", adjustmentLabel: "", adjustmentSubtext: "", estimatedTotal: "", imageUrl: "" };
+        const newVenue = {
+            id: "VNU-" + Date.now(),
+            title: dto.title,
+            tag: dto.tag || "VENUE",
+            capacityDetails: dto.capacityDetails || "",
+            basePricing: dto.basePricing || "$0",
+            pricingUnit: dto.pricingUnit || "/day",
+            adjustmentLabel: dto.adjustmentLabel || "",
+            adjustmentSubtext: dto.adjustmentSubtext || "",
+            estimatedTotal: dto.estimatedTotal || "",
+            imageUrl: dto.imageUrl || ""
+        };
+        this.mockVenues.push(newVenue);
+        return newVenue;
     }
 };
 exports.QuotationService = QuotationService;
@@ -406,8 +522,10 @@ exports.QuotationService = QuotationService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, common_1.Inject)((0, common_1.forwardRef)(() => pricing_service_1.PricingService))),
     __param(1, (0, common_1.Inject)((0, common_1.forwardRef)(() => approval_service_1.ApprovalService))),
+    __param(3, (0, bullmq_2.InjectQueue)('quotations')),
     __metadata("design:paramtypes", [pricing_service_1.PricingService,
         approval_service_1.ApprovalService,
-        prisma_service_1.PrismaService])
+        prisma_service_1.PrismaService,
+        bullmq_1.Queue])
 ], QuotationService);
 //# sourceMappingURL=quotation.service.js.map

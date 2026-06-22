@@ -22,8 +22,7 @@ const CreateQuotationStep1 = () => {
       navigate(`/quotation-builder?id=${result.id || result.quoteId}`);
     } catch (err: any) {
       console.error('Failed to create quote:', err.message);
-      // Fallback if backend is down
-      navigate('/quotation-builder?id=Q-8829');
+      alert(`Failed to create quote: ${err.message}\n(Make sure you restarted your frontend dev server!)`);
     } finally {
       setSaving(false);
     }

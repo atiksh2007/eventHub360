@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DashboardController = void 0;
 const common_1 = require("@nestjs/common");
+const jwt_auth_guard_1 = require("../../shared/auth/jwt-auth.guard");
 const quotation_dashboard_service_1 = require("../services/quotation-dashboard.service");
 let DashboardController = class DashboardController {
     constructor(dashboardService) {
@@ -60,6 +61,7 @@ __decorate([
 ], DashboardController.prototype, "getTopExecutives", null);
 exports.DashboardController = DashboardController = __decorate([
     (0, common_1.Controller)('dashboard'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [quotation_dashboard_service_1.QuotationDashboardService])
 ], DashboardController);
 //# sourceMappingURL=dashboard.controller.js.map

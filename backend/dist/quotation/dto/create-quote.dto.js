@@ -16,12 +16,12 @@ class CreateQuoteDto {
 exports.CreateQuoteDto = CreateQuoteDto;
 __decorate([
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)({ message: 'Client name cannot be left blank' }),
+    (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], CreateQuoteDto.prototype, "clientName", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)({ message: 'Event type specification is required' }),
+    (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], CreateQuoteDto.prototype, "eventType", void 0);
 __decorate([
@@ -34,4 +34,8 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], CreateQuoteDto.prototype, "expectedGuests", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Object)
+], CreateQuoteDto.prototype, "metadata", void 0);
 //# sourceMappingURL=create-quote.dto.js.map

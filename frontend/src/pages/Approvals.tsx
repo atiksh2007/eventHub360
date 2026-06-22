@@ -10,10 +10,33 @@ import {
 const Approvals = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const approvalId = searchParams.get('id') || 'QT-2024-0892';
+  const [approvalId, setApprovalId] = useState(searchParams.get('id') || '');
+  const [pendingList, setPendingList] = useState<any[]>([]);
   const [feedback, setFeedback] = useState('');
   const [processing, setProcessing] = useState(false);
   const [actionResult, setActionResult] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    api.getPendingApprovals().then(data => {
+      setPendingList(data || []);
+      if (!approvalId) {
+        if (data && data.length > 0 && data[0].quoteId) {
+          setApprovalId(data[0].quoteId);
+        } else {
+          setApprovalId('NONE_AVAILABLE');
+        }
+      }
+    }).catch(err => {
+      console.error("Failed to load pending approvals", err);
+      if (!approvalId) setApprovalId('NONE_AVAILABLE');
+    });
+  }, []); // Only run once on mount
+
+  // Also update approvalId if the URL param changes
+  React.useEffect(() => {
+    const id = searchParams.get('id');
+    if (id) setApprovalId(id);
+  }, [searchParams]);
 
   const handleApprovalAction = async (action: 'APPROVE' | 'REJECT' | 'DRAFT') => {
     setProcessing(true);
@@ -44,6 +67,27 @@ const Approvals = () => {
     { icon: CheckSquare, label: 'Approvals', path: '/approvals' },
     { icon: Users, label: 'Client Portal', path: '/client-portal' },
   ];
+
+  const selectedQuote = pendingList.find(p => (p.quoteId || p.title) === approvalId) || pendingList[0] || {};
+  const quoteTitle = selectedQuote.title || 'Event Package';
+  const priorityBadge = selectedQuote.badgeType || 'STANDARD';
+  const totalValue = selectedQuote.amount || '$0.00';
+  
+  let requesterName = 'Unknown Requester';
+  let initials = 'UN';
+  if (selectedQuote.creator) {
+    if (selectedQuote.creator.includes('Created by')) {
+      const match = selectedQuote.creator.match(/Created by ([A-Za-z\s]+)/);
+      if (match && match[1]) {
+        requesterName = match[1].trim();
+        const parts = requesterName.split(' ');
+        initials = parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].substring(0, 2).toUpperCase();
+      }
+    } else {
+      requesterName = selectedQuote.creator;
+      initials = requesterName.substring(0, 2).toUpperCase();
+    }
+  }
 
   return (
     <div className="flex min-h-screen bg-[#F8F9FC] font-sans">
@@ -238,15 +282,45 @@ const Approvals = () => {
               {/* LEFT COLUMN (70%) */}
               <div className="flex-1 lg:w-[70%] space-y-6">
                 
+                {/* SELECT APPROVAL DROPDOWN */}
+                <div className="bg-white rounded-[28px] p-6 shadow-[0_2px_12px_rgba(0,0,0,0.02)] border border-[#ECECF1] flex items-center justify-between">
+                  <div>
+                    <h3 className="text-[16px] font-bold text-gray-900">Select Pending Approval</h3>
+                    <p className="text-[13px] text-gray-500">Choose a quote to review from the queue.</p>
+                  </div>
+                  <select 
+                    className="w-[300px] h-11 bg-[#F8F9FC] border border-[#ECECF1] rounded-[12px] px-4 text-[14px] font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100"
+                    value={approvalId}
+                    onChange={(e) => {
+                      setApprovalId(e.target.value);
+                      navigate(`/approvals?id=${e.target.value}`, { replace: true });
+                    }}
+                  >
+                    {pendingList.length === 0 ? (
+                      <option value="NONE_AVAILABLE">No Pending Approvals</option>
+                    ) : (
+                      pendingList.map((p, idx) => (
+                        <option key={idx} value={p.quoteId || `QT-${idx}`}>
+                          {p.quoteId} - {p.title}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+
                 {/* APPROVAL DETAILS CARD */}
                 <div className="bg-white rounded-[28px] p-8 shadow-[0_2px_12px_rgba(0,0,0,0.02)] border border-[#ECECF1]">
                   <div className="flex items-start justify-between mb-8">
                     <div>
-                      <p className="text-[14px] font-bold text-gray-900 mb-1">Quote #QT-2024-0892</p>
-                      <h3 className="text-[20px] font-medium text-gray-600">Global Leadership Summit 2024 • Luxury Hospitality Package</h3>
+                      <p className="text-[14px] font-bold text-gray-900 mb-1">Quote #{approvalId !== 'NONE_AVAILABLE' ? approvalId : '---'}</p>
+                      <h3 className="text-[20px] font-medium text-gray-600">{quoteTitle}</h3>
                     </div>
-                    <span className="px-4 py-1.5 bg-[#FEF3C7] text-[#92400E] text-[13px] font-bold rounded-full">
-                      Priority High
+                    <span className={`px-4 py-1.5 text-[13px] font-bold rounded-full ${
+                      priorityBadge === 'HIGH PRIORITY' || priorityBadge === 'ESCALATED' 
+                        ? 'bg-[#FEF3C7] text-[#92400E]' 
+                        : 'bg-blue-50 text-blue-700'
+                    }`}>
+                      {priorityBadge}
                     </span>
                   </div>
 
@@ -255,22 +329,22 @@ const Approvals = () => {
                       <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Requester</p>
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-red-100 text-red-700 flex items-center justify-center text-xs font-bold">
-                          JD
+                          {initials}
                         </div>
-                        <span className="text-[15px] font-semibold text-gray-900">Julianne Devis</span>
+                        <span className="text-[15px] font-semibold text-gray-900">{requesterName}</span>
                       </div>
                     </div>
                     <div>
                       <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Total Value</p>
-                      <p className="text-[18px] font-bold text-red-700">$142,500.00</p>
+                      <p className="text-[18px] font-bold text-red-700">{totalValue}</p>
                     </div>
                     <div>
                       <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Date Created</p>
-                      <p className="text-[15px] font-semibold text-gray-900">October 12, 2023</p>
+                      <p className="text-[15px] font-semibold text-gray-900">Just now</p>
                     </div>
                     <div>
                       <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Region</p>
-                      <p className="text-[15px] font-semibold text-gray-900">North America - Hospitality</p>
+                      <p className="text-[15px] font-semibold text-gray-900">Global - Default</p>
                     </div>
                   </div>
 
@@ -411,7 +485,7 @@ const Approvals = () => {
                     <div className="space-y-3 mb-8">
                       <button 
                         onClick={() => handleApprovalAction('APPROVE')}
-                        disabled={processing}
+                        disabled={processing || !approvalId || approvalId === 'NONE_AVAILABLE'}
                         className="w-full h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-orange-400 text-white rounded-[14px] font-bold text-[15px] shadow-sm hover:shadow-md transition-all disabled:opacity-50"
                       >
                         <CheckCircle className="w-5 h-5" />
@@ -419,7 +493,7 @@ const Approvals = () => {
                       </button>
                       <button 
                         onClick={() => handleApprovalAction('REJECT')}
-                        disabled={processing}
+                        disabled={processing || !approvalId || approvalId === 'NONE_AVAILABLE'}
                         className="w-full h-12 flex items-center justify-center gap-2 bg-[#F3F5F9] text-gray-600 rounded-[14px] font-bold text-[15px] hover:bg-gray-200 transition-colors disabled:opacity-50"
                       >
                         <XCircle className="w-5 h-5" />
@@ -437,7 +511,7 @@ const Approvals = () => {
                       ></textarea>
                       <button 
                         onClick={() => handleApprovalAction('DRAFT')}
-                        disabled={processing}
+                        disabled={processing || !approvalId || approvalId === 'NONE_AVAILABLE'}
                         className="w-full h-11 flex items-center justify-center gap-2 border border-red-200 text-red-600 rounded-[12px] font-bold text-[14px] hover:bg-red-50 transition-colors disabled:opacity-50"
                       >
                         <Send className="w-4 h-4" />

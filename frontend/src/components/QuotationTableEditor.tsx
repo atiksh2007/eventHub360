@@ -1,7 +1,7 @@
 import React from 'react';
 import { Trash2, PlusCircle } from 'lucide-react';
 
-const QuotationTableEditor = ({ items, onAdd, onDelete, onUpdate  }: any) => {
+const QuotationTableEditor = ({ items, onAdd, onDelete, onUpdate, availableItems  }: any) => {
   return (
     <div className="flex flex-col">
       <div className="overflow-x-auto">
@@ -24,11 +24,19 @@ const QuotationTableEditor = ({ items, onAdd, onDelete, onUpdate  }: any) => {
                   <td className="py-4 pr-4">
                     <input
                       type="text"
+                      list={availableItems ? `options-${item.id}` : undefined}
                       value={item.description}
                       onChange={(e) => onUpdate(item.id, 'description', e.target.value)}
                       className="w-full h-9 px-3 bg-transparent border border-transparent rounded-[8px] text-[14px] font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:bg-gray-50 focus:border-gray-200 transition-all"
                       placeholder="Item description..."
                     />
+                    {availableItems && (
+                      <datalist id={`options-${item.id}`}>
+                        {availableItems.map((opt: any, i: number) => (
+                          <option key={i} value={opt.title} />
+                        ))}
+                      </datalist>
+                    )}
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex justify-center">

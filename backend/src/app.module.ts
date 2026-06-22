@@ -8,6 +8,8 @@ import { QuotationModule } from './quotation/quotation.module';
 import { PricingModule } from './pricing/pricing.module';
 import { ApprovalModule } from './approval/approval.module';
 import { ProposalModule } from './proposal/proposal.module';
+import { BullModule } from '@nestjs/bullmq';
+import { AuthModule } from './shared/auth/auth.module';
 
 @Module({
   imports: [
@@ -16,6 +18,17 @@ import { ProposalModule } from './proposal/proposal.module';
     
     // Core database layer
     PrismaModule,
+
+    // Background Jobs Queue (Redis)
+    BullModule.forRoot({
+      connection: {
+        host: process.env.REDIS_HOST || '127.0.0.1',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+      },
+    }),
+    
+    // Shared Services
+    AuthModule,
     
     // Domain-Driven Design (DDD) Bounded Contexts
     QuotationModule,

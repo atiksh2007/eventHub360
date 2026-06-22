@@ -12,6 +12,10 @@ export declare class QuotationController {
     constructor(qtnService: QuotationService, approvalService: ApprovalService);
     private verifyTenantId;
     createQuote(dto: CreateQuoteDto, tenantId: string): Promise<QuotationDetailResponse>;
+    updateQuote(id: string, dto: CreateQuoteDto, tenantId: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
     appendItems(id: string, vid: string, dto: AddLineItemsDto, tenantId: string): Promise<QuotationDetailResponse>;
     syncItems(id: string, dto: {
         items: any[];
@@ -19,9 +23,13 @@ export declare class QuotationController {
     calculateQuote(id: string, dto: CalculateQuoteDto, tenantId: string): Promise<any>;
     requestApproval(id: string, dto: CreateApprovalDto, tenantId: string): Promise<any>;
     publishProposal(id: string, tenantId: string): Promise<any>;
+    deleteQuote(id: string, tenantId: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
     getHistoryPriceBook(category: string, tenantId: string): Promise<PriceBookResponse>;
     createNewRateCard(createRateDto: CreateRateCardDto, tenantId: string): Promise<RateCardItem>;
-    getLiveList(status: string, page: string, tenantId: string): Promise<LiveQuotationsResponse>;
+    getLiveList(status: string, page: string, limit: string, tenantId: string): Promise<LiveQuotationsResponse>;
     getDetails(id: string, tenantId: string): Promise<QuotationDetailResponse>;
     getWorkflowTrack(id: string, tenantId: string): Promise<any>;
     handleWorkflowAction(id: string, action: string, feedback: string, tenantId: string): Promise<any>;

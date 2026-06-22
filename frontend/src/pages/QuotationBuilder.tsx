@@ -9,7 +9,7 @@ import EventInfoCard from '../components/EventInfoCard';
 import ProposalGeneratorCard from '../components/ProposalGeneratorCard';
 import { MapPin, Palette, Utensils, Music, Save, Loader, CheckCircle } from 'lucide-react';
 import { api } from '../services/api';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 const QUOTE_ID = 'Q-8829'; // Default fallback quote ID
 
@@ -21,6 +21,7 @@ const sectionKeys = [
 ];
 
 const QuotationBuilder = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const quoteId = searchParams.get('id') || QUOTE_ID;
 
@@ -37,6 +38,8 @@ const QuotationBuilder = () => {
     subtotal: 0, taxes: '$0.00', serviceCharge: '$0.00',
     totalQuoteValue: '$0.00', netProfitMarginPct: '0%'
   });
+
+  const [priceBookVenues, setPriceBookVenues] = useState<any[]>([]);
 
   // Load from backend on mount
   useEffect(() => {
@@ -60,12 +63,53 @@ const QuotationBuilder = () => {
             categoryName: sec.categoryName,
           }));
         });
+        
+        // Auto-inject venue from draft metadata if section is empty
+        if (rebuilt['Venue Selection'].length === 0 && res.metadata?.venue) {
+          rebuilt['Venue Selection'].push({
+            id: Math.random().toString(36).substr(2, 9),
+            description: res.metadata.venue,
+            qty: 1,
+            price: 0, // Let the user select the matching price from dropdown or it will be populated later
+            discount: 0,
+            categoryName: 'Venue Selection',
+          });
+        }
+        
         setSections(rebuilt);
       })
       .catch((err: any) => {
         console.warn('Backend offline, using local state. Error:', err.message);
       });
   }, [quoteId]);
+
+  useEffect(() => {
+    api.getPriceBook('venues').then((data: any) => {
+      if (data && data.items && data.items.length > 0) {
+        setPriceBookVenues(data.items);
+      }
+    }).catch(console.error);
+  }, []);
+
+  const handleApplyPricingConfig = async (config: { discountGlobal: number; chargeService: number }) => {
+    if (!quoteId) return;
+    try {
+      setSaving(true);
+      const res = await api.calculateQuote(quoteId, config);
+      
+      if (res?.summary) {
+        setSummary(res.summary);
+        setQuoteData((prev: any) => prev ? { ...prev, summary: res.summary } : null);
+      }
+      setSaving(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e) {
+      console.error(e);
+      setSaving(false);
+      alert('Failed to apply pricing configuration.');
+    }
+  };
 
   const calculateSubtotal = () => {
     let subtotal = 0;
@@ -78,12 +122,27 @@ const QuotationBuilder = () => {
   };
 
   const handleUpdate = (sectionKey: string, id: string, field: string, value: any) => {
-    setSections(prev => ({
-      ...prev,
-      [sectionKey]: prev[sectionKey].map((item: any) =>
-        item.id === id ? { ...item, [field]: value } : item
-      )
-    }));
+    setSections(prev => {
+      let additionalUpdates: any = {};
+      
+      if (sectionKey === 'Venue Selection' && field === 'description') {
+        const matchedVenue = priceBookVenues.find(v => v.title === value);
+        if (matchedVenue) {
+          const rawPrice = String(matchedVenue.price || matchedVenue.basePricing || '0').replace(/[^0-9.]/g, '');
+          additionalUpdates.price = parseFloat(rawPrice) || 0;
+          additionalUpdates.qty = 1;
+        } else {
+          additionalUpdates.price = 0;
+        }
+      }
+
+      return {
+        ...prev,
+        [sectionKey]: prev[sectionKey].map((item: any) =>
+          item.id === id ? { ...item, [field]: value, ...additionalUpdates } : item
+        )
+      };
+    });
     setSaved(false);
   };
 
@@ -131,6 +190,7 @@ const QuotationBuilder = () => {
       const updated = await api.syncQuoteItems(quoteId, allItems);
       if (updated?.summary) {
         setSummary(updated.summary);
+        setQuoteData((prev: any) => prev ? { ...prev, summary: updated.summary } : null);
       }
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -170,9 +230,16 @@ const QuotationBuilder = () => {
                 </div>
 
                 {/* Save Button */}
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => navigate(`/quotations/drafts/continue?id=${quoteId}`)}
+                    className="flex items-center gap-2 px-6 py-3 rounded-[14px] font-bold text-[15px] bg-white border border-[#ECECF1] text-gray-700 hover:bg-gray-50 transition-all shadow-sm"
+                  >
+                    Back to Wizard
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
                   className={`flex items-center gap-2 px-6 py-3 rounded-[14px] font-bold text-[15px] shadow-sm transition-all ${
                     saved
                       ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
@@ -189,11 +256,12 @@ const QuotationBuilder = () => {
                   {saving ? 'Saving...' : saved ? 'Saved to DB' : 'Save to Database'}
                 </button>
               </div>
-
-              <p className="text-[16px] font-medium text-gray-500">
-                Quote #{quoteId} | {quoteData?.lastEdited || 'Last edited 2 mins ago'}
-              </p>
             </div>
+
+            <p className="text-[16px] font-medium text-gray-500">
+              Quote #{quoteId} | {quoteData?.lastEdited || 'Last edited 2 mins ago'}
+            </p>
+          </div>
 
             {/* Layout Grid */}
             <div className="flex flex-col xl:flex-row gap-8">
@@ -218,6 +286,7 @@ const QuotationBuilder = () => {
                         onAdd={() => handleAdd(key)}
                         onUpdate={(id: any, f: any, v: any) => handleUpdate(key, id, f, v)}
                         onDelete={(id: any) => handleDelete(key, id)}
+                        availableItems={key === 'Venue Selection' ? priceBookVenues : undefined}
                       />
                     )}
                   </ServiceAccordion>
@@ -227,8 +296,8 @@ const QuotationBuilder = () => {
               {/* Right Column - Sticky Panel */}
               <div className="w-full xl:w-[30%] relative">
                 <div className="sticky top-0 pt-2">
-                  <QuoteSummaryCard subtotal={calculateSubtotal()} dbSummary={summary} />
-                  <ProfitMarginCard margin={quoteData?.summary?.netProfitMarginPct?.replace('%','') || 0} />
+                  <QuoteSummaryCard subtotal={calculateSubtotal()} dbSummary={summary} onApplyPricingConfig={handleApplyPricingConfig} />
+                  <ProfitMarginCard margin={summary?.netProfitMarginPct?.replace('%','') || 0} />
                   <EventInfoCard />
                   <ProposalGeneratorCard />
                 </div>

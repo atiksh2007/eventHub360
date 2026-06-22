@@ -70,27 +70,30 @@ const QuotationDashboard = () => {
       .then(res => {
         if (res && res.rows) {
           setQuotations(res.rows);
-          const counts = { drafts: 0, sent: 0, accepted: 0, expired: 0 };
-          res.rows.forEach((q: any) => {
-            const statusLower = q.status.toLowerCase();
-            if (statusLower.includes('draft')) counts.drafts++;
-            else if (statusLower.includes('sent')) counts.sent++;
-            else if (statusLower.includes('accept')) counts.accepted++;
-            else if (statusLower.includes('expire')) counts.expired++;
-          });
-          setSummary({
-            drafts: counts.drafts,
-            sent: counts.sent,
-            accepted: counts.accepted,
-            expired: counts.expired,
-            totalPipeline: res.summaryMetrics?.totalPipeline || "$2.8M",
-            avgQuoteValue: "$145k",
-            conversionRate: res.summaryMetrics?.conversionRate || "48%"
-          });
         }
       })
       .catch(err => {
         console.error("Failed to connect frontend to NestJS backend: ", err);
+      });
+
+    // Load Dashboard metrics from backend
+    api.getDashboardSummary()
+      .then((data: any) => {
+        if (data && data.statusCounters) {
+          setSummary({
+            drafts: data.statusCounters.drafts,
+            sent: data.statusCounters.sent,
+            accepted: data.statusCounters.accepted,
+            expired: data.statusCounters.expired,
+            pendingApproval: data.statusCounters.pendingApproval || 0,
+            totalPipeline: data.kpiCards.revenuePipeline.amount,
+            avgQuoteValue: data.kpiCards.avgQuoteValue.amount,
+            conversionRate: data.kpiCards.conversionRate.percentage
+          });
+        }
+      })
+      .catch((err: any) => {
+        console.error("Failed to load dashboard summary:", err);
       });
   }, []);
 
@@ -199,7 +202,7 @@ const QuotationDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
               <KPICard 
                 title="Pending Quotes" 
-                value={summary.drafts + summary.sent} 
+                value={(summary.drafts || 0) + (summary.pendingApproval || 0)} 
                 trend="up" 
                 trendValue={12.0} 
                 icon={FileText} 
@@ -219,7 +222,7 @@ const QuotationDashboard = () => {
               />
               <KPICard 
                 title="Total Approved" 
-                value={summary.accepted} 
+                value={(summary.sent || 0) + (summary.accepted || 0)} 
                 trend="up" 
                 trendValue={0} 
                 icon={CheckCircle} 
@@ -241,10 +244,10 @@ const QuotationDashboard = () => {
 
             {/* ROW 2: SUMMARY CARDS */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <SummaryCard icon={FileEdit} value={summary.drafts} label="Drafts" iconBg="bg-gray-100" iconColor="text-gray-600" onClick={() => navigate('/quotations/drafts')} />
-              <SummaryCard icon={Send} value={summary.sent} label="Sent" iconBg="bg-blue-50" iconColor="text-blue-600" onClick={() => navigate('/quotations/master')} />
-              <SummaryCard icon={CheckCircle} value={summary.accepted} label="Accepted" iconBg="bg-emerald-50" iconColor="text-emerald-600" onClick={() => navigate('/quotations/approved-center')} />
-              <SummaryCard icon={Clock} value={summary.expired} label="Expired" iconBg="bg-rose-50" iconColor="text-rose-600" onClick={() => navigate('/quotations/history-center')} />
+              <SummaryCard icon={FileEdit} value={summary.drafts || 0} label="Drafts" iconBg="bg-gray-100" iconColor="text-gray-600" onClick={() => navigate('/quotations/drafts')} />
+              <SummaryCard icon={Send} value={summary.sent || 0} label="Sent" iconBg="bg-blue-50" iconColor="text-blue-600" onClick={() => navigate('/quotations/master')} />
+              <SummaryCard icon={CheckCircle} value={summary.accepted || 0} label="Accepted" iconBg="bg-emerald-50" iconColor="text-emerald-600" onClick={() => navigate('/quotations/approved-center')} />
+              <SummaryCard icon={Clock} value={summary.expired || 0} label="Expired" iconBg="bg-rose-50" iconColor="text-rose-600" onClick={() => navigate('/quotations/history-center')} />
             </div>
 
             {/* ROW 3: CHARTS */}
@@ -253,7 +256,14 @@ const QuotationDashboard = () => {
                 <MonthlyQuotationChart />
               </div>
               <div className="lg:col-span-4 h-full">
-                <QuoteStatusChart />
+                <QuoteStatusChart statusCounters={{
+                  drafts: summary.drafts || 0,
+                  sent: summary.sent || 0,
+                  accepted: summary.accepted || 0,
+                  expired: summary.expired || 0,
+                  pendingApproval: summary.pendingApproval || 0,
+                  approved: summary.accepted || 0 // use accepted as approved
+                }} />
               </div>
             </div>
 

@@ -25,11 +25,27 @@ const PendingQuotationsCenter = () => {
     { id: 3, client: 'Marriott Partners', type: 'WhatsApp', time: 'Tomorrow, 10:00 AM', status: 'scheduled', icon: MessageCircle }
   ];
 
-  const pendingQuotes = [
-    { id: 'QT-2023-142', client: 'Acme Corp', event: 'Annual Gala', value: '$45,000', stage: 'Negotiation', executive: 'Alex Chen', lastActivity: '2 hours ago' },
-    { id: 'QT-2023-145', client: 'Stark Industries', event: 'Tech Summit', value: '$120,000', stage: 'Under Review', executive: 'Sarah Jenkins', lastActivity: '1 day ago' },
-    { id: 'QT-2023-148', client: 'Wayne Enterprises', event: 'Charity Ball', value: '$85,000', stage: 'Initial Draft', executive: 'Michael Chang', lastActivity: '3 days ago' },
-  ];
+  const [pendingQuotes, setPendingQuotes] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    import('../services/api').then(({ api }) => {
+      Promise.all([
+        api.getLiveList('DRAFT', 1, 50),
+        api.getLiveList('PENDING_APPROVAL', 1, 50)
+      ]).then(([draftData, pendingData]: any[]) => {
+        const rows = [...(draftData?.rows || []), ...(pendingData?.rows || [])];
+        setPendingQuotes(rows.map((row: any) => ({
+          id: row.quoteNumber,
+          client: row.clientName,
+          event: row.eventType,
+          value: row.totalAmount,
+          stage: row.status,
+          executive: 'Unassigned', // Backend doesn't have executive yet
+          lastActivity: 'Recent'
+        })));
+      }).catch(err => console.error("Failed to load active quotes:", err));
+    });
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-[#F8F9FC] font-sans">

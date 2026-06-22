@@ -1,109 +1,11 @@
 import React, { useState } from 'react';
+import Sidebar from '../components/Sidebar';
 import { 
   Search, Bell, History as ActivityIcon, Printer, 
   Upload, ChevronDown, Plus, LayoutGrid, List, MoreVertical,
   ChevronLeft, ChevronRight, LayoutDashboard, FileText, 
-  Files, LayoutTemplate, CheckSquare, Users, Settings, HelpCircle
+  Files, LayoutTemplate, CheckSquare, Users, Settings, HelpCircle, Trash2
 } from 'lucide-react';
-
-// ==========================================
-// DATA
-// ==========================================
-const mockVenues = [
-  {
-    id: 1,
-    title: 'Grand Sapphire Ballroom',
-    description: 'Capacity: up to 500 guests. Features 360-degree mapping and dual staircases.',
-    badge: 'Premium Venue',
-    price: '$12,500',
-    unit: 'day',
-    markupText: '+15% Service',
-    markupColor: 'text-emerald-500',
-    estimatedText: 'Estimated Total: $14,375',
-    image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-  },
-  {
-    id: 2,
-    title: 'Horizon Vista Terrace',
-    description: 'Rooftop access with panoramic city views. Features fire pits and glass railings.',
-    badge: 'Sky Deck',
-    price: '$5,200',
-    unit: 'session',
-    markupText: '+10% Service',
-    markupColor: 'text-emerald-500',
-    estimatedText: 'Estimated Total: $5,720',
-    image: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-  },
-  {
-    id: 3,
-    title: 'Innovation Tech Hub',
-    description: 'Theater-style seating for 200. HD projectors, live-streaming ready.',
-    badge: 'Conference',
-    price: '$8,900',
-    unit: 'day',
-    markupText: 'Included Service',
-    markupColor: 'text-emerald-500',
-    estimatedText: 'Flat Rate',
-    image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-  },
-  {
-    id: 4,
-    title: 'The Verdant Atrium',
-    description: 'Indoor garden setting with sustainable climate control and living walls.',
-    badge: 'Eco-Lounge',
-    price: '$4,500',
-    unit: 'day',
-    markupText: '+20% Seasonal',
-    markupColor: 'text-emerald-500',
-    estimatedText: 'Estimated Total: $5,400',
-    image: 'https://images.unsplash.com/photo-1505843513577-22bb7d21e455?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-  },
-  {
-    id: 5,
-    title: 'The Reserve Cellar',
-    description: 'Intimate underground tasting room. Private barrel backdrop.',
-    badge: 'Private Reserve',
-    price: '$2,800',
-    unit: 'night',
-    markupText: 'Sommelier Incl.',
-    markupColor: 'text-emerald-500',
-    estimatedText: 'Exclusive Access',
-    image: 'https://images.unsplash.com/photo-1543362906-acfc16c67564?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-  },
-  {
-    id: 6,
-    title: 'Manor Estate Tent',
-    description: 'All-weather luxury marquee on estate lawn. Floor-to-ceiling windows.',
-    badge: 'Estate Grounds',
-    price: '$15,000',
-    unit: 'event',
-    markupText: '+5% Logistics',
-    markupColor: 'text-emerald-500',
-    estimatedText: 'Setup Included',
-    image: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-  },
-  {
-    id: 7,
-    title: 'Industrial Loft 402',
-    description: 'Flexible studio space for product launches and creative workshops.',
-    badge: 'Urban Chic',
-    price: '$3,200',
-    unit: 'day',
-    markupText: 'Standard Rate',
-    markupColor: 'text-emerald-500',
-    estimatedText: 'No Surcharge',
-    image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-  }
-];
-
-const sidebarNavItems = [
-  { icon: LayoutDashboard, label: 'Dashboard' },
-  { icon: FileText, label: 'Quotations', active: true },
-  { icon: Files, label: 'Proposals' },
-  { icon: LayoutTemplate, label: 'Templates' },
-  { icon: CheckSquare, label: 'Approvals' },
-  { icon: Users, label: 'Client Portal' },
-];
 
 const headerTabs = [
   { label: 'All Quotes' },
@@ -114,64 +16,7 @@ const headerTabs = [
 
 const categoryTabsList = ['Venues', 'Packages', 'Vendors', 'Services'];
 
-// ==========================================
-// INLINE COMPONENTS
-// ==========================================
 
-const Sidebar = () => (
-  <div className="w-[260px] bg-white h-screen fixed left-0 top-0 flex flex-col border-r border-[#ECECF1] z-10 shadow-[2px_0_8px_rgba(0,0,0,0.02)] hidden lg:flex">
-    <div className="p-6 pb-8">
-      <h1 className="text-xl font-bold text-gray-900 tracking-tight">
-        <span className="text-red-600">Event</span>Hub360
-      </h1>
-      <p className="text-xs text-gray-500 font-medium mt-1 uppercase tracking-wider">Enterprise Concierge</p>
-    </div>
-    <div className="flex-1 px-4 space-y-2 overflow-y-auto">
-      {sidebarNavItems.map((item: any, index: any) => {
-        const Icon = item.icon;
-        return (
-          <button
-            key={index}
-            className={`w-full flex items-center h-12 px-4 rounded-[14px] transition-all duration-200 group relative ${
-              item.active 
-                ? 'bg-purple-50 text-red-600 font-semibold'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium'
-            }`}
-          >
-            <Icon className={`w-5 h-5 mr-3 ${item.active ? 'text-red-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
-            <span className="text-[15px]">{item.label}</span>
-            {item.active && (
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-red-600 rounded-l-full" />
-            )}
-          </button>
-        );
-      })}
-    </div>
-    <div className="p-6 pt-4 border-t border-[#ECECF1] space-y-4">
-      <div className="space-y-1">
-        <button className="w-full flex items-center h-10 px-4 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors font-medium">
-          <Settings className="w-5 h-5 mr-3 text-gray-400" />
-          <span className="text-[15px]">Settings</span>
-        </button>
-        <button className="w-full flex items-center h-10 px-4 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors font-medium">
-          <HelpCircle className="w-5 h-5 mr-3 text-gray-400" />
-          <span className="text-[15px]">Support</span>
-        </button>
-      </div>
-      <div className="mt-4 flex items-center gap-3 cursor-pointer p-2 hover:bg-gray-50 rounded-[14px] transition-colors">
-        <img
-          src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-          alt="Alex Sterling"
-          className="w-10 h-10 rounded-full object-cover border border-gray-200 shadow-sm"
-        />
-        <div>
-          <p className="text-sm font-bold text-gray-900 leading-tight">Alex Sterling</p>
-          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Admin</p>
-        </div>
-      </div>
-    </div>
-  </div>
-);
 
 const PriceBookHeader = () => (
   <div className="h-[72px] bg-white border-b border-[#ECECF1] px-8 flex items-center justify-between sticky top-0 z-10 shrink-0">
@@ -289,7 +134,7 @@ const PricingBadge = ({ text  }: any) => (
   </span>
 );
 
-const VenueCard = ({ venue  }: any) => (
+const VenueCard = ({ venue, onDelete  }: any) => (
   <div className="bg-white rounded-[24px] shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-[#ECECF1] overflow-hidden hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(0,0,0,0.08)] transition-all duration-300 flex flex-col group cursor-pointer h-full">
     <div className="relative h-[220px] w-full overflow-hidden shrink-0">
       <img 
@@ -305,8 +150,11 @@ const VenueCard = ({ venue  }: any) => (
         <h3 className="text-[20px] font-bold text-gray-900 leading-tight pr-6">
           {venue.title}
         </h3>
-        <button className="absolute top-6 right-5 text-gray-400 hover:text-gray-900 transition-colors p-1 -mr-1">
-          <MoreVertical className="w-5 h-5" />
+        <button 
+          onClick={(e) => { e.stopPropagation(); onDelete && onDelete(venue.id); }}
+          className="absolute top-6 right-5 text-gray-300 hover:text-red-500 transition-colors p-1 -mr-1"
+        >
+          <Trash2 className="w-5 h-5" />
         </button>
       </div>
       <p className="text-[14px] font-medium text-gray-500 line-clamp-2 leading-relaxed mb-6">
@@ -394,26 +242,100 @@ const PriceBookPagination = () => (
     </button>
   </div>
 );
-
 // ==========================================
 // MAIN COMPONENT
 // ==========================================
 
 const GlobalPriceBook = () => {
+  const [venues, setVenues] = useState<any[]>([]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    tag: 'Premium Venue',
+    capacityDetails: '',
+    basePricing: '',
+    pricingUnit: 'day',
+    adjustmentLabel: '+15% Service',
+    adjustmentSubtext: 'Estimated Total',
+    estimatedTotal: '',
+    imageUrl: ''
+  });
+
+  React.useEffect(() => {
+    import('../services/api').then(({ api }) => {
+      api.getPriceBook('venues').then((data: any) => {
+        if (data && data.items && data.items.length > 0) {
+          const apiVenues = data.items.map((v: any) => ({
+            id: v.id,
+            title: v.title,
+            badge: v.tag,
+            description: v.capacityDetails,
+            price: v.basePricing,
+            unit: v.pricingUnit,
+            markupText: v.adjustmentLabel,
+            markupColor: 'text-emerald-500',
+            estimatedText: v.estimatedTotal || v.adjustmentSubtext,
+            image: v.imageUrl || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80'
+          }));
+          setVenues(apiVenues);
+        }
+      }).catch(console.error);
+    });
+  }, []);
+
+  const handleSaveRateCard = async () => {
+    try {
+      const { api } = await import('../services/api');
+      const payload = {
+        ...formData,
+        imageUrl: formData.imageUrl || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80'
+      };
+      const res = await api.createRateCard(payload);
+      
+      const newVenue = {
+        id: res.id || Date.now(),
+        title: formData.title,
+        badge: formData.tag,
+        description: formData.capacityDetails,
+        price: formData.basePricing,
+        unit: formData.pricingUnit,
+        markupText: formData.adjustmentLabel,
+        markupColor: 'text-emerald-500',
+        estimatedText: formData.estimatedTotal,
+        image: payload.imageUrl
+      };
+      
+      setVenues(prev => [...prev, newVenue]);
+      setShowCreateModal(false);
+      setFormData({
+        title: '', tag: 'Premium Venue', capacityDetails: '', basePricing: '',
+        pricingUnit: 'day', adjustmentLabel: '+15% Service', adjustmentSubtext: 'Estimated Total', estimatedTotal: '', imageUrl: ''
+      });
+    } catch (e: any) {
+      console.error(e);
+      alert('Failed to save rate card: ' + e.message);
+    }
+  };
+
+  const handleDeleteVenue = (id: any) => {
+    // In a real app, call api.deleteRateCard(id)
+    setVenues(prev => prev.filter(v => v.id !== id));
+  };
+
   return (
     <div className="flex min-h-screen bg-[#F8F9FC] font-sans">
       <Sidebar />
-      
-      <div className="flex-1 ml-[260px] flex flex-col h-screen overflow-hidden relative w-full">
+      <div className="flex-1 ml-[260px] flex flex-col h-screen overflow-hidden">
         <PriceBookHeader />
         
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-12 overflow-x-hidden">
-          <div className="max-w-[1400px] mx-auto space-y-8">
+        <main className="flex-1 overflow-y-auto p-8 relative">
+          <div className="max-w-[1400px] mx-auto">
             
-            {/* Page Header Area */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-              <div className="max-w-[600px]">
-                <span className="inline-block bg-[#FCE8E8] text-[#B3262E] text-[12px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full mb-4">
+            {/* Header Content */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+              <div className="max-w-2xl">
+                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 text-red-700 text-[12px] font-bold tracking-widest uppercase mb-4 border border-red-100">
+                  <LayoutTemplate className="w-4 h-4" />
                   Rate Card & Pricing
                 </span>
                 <h1 className="text-[36px] md:text-[48px] font-bold text-gray-900 tracking-tight leading-none mb-4">
@@ -424,37 +346,37 @@ const GlobalPriceBook = () => {
                 </p>
               </div>
 
-              {/* Header Actions */}
-              <div className="flex flex-wrap items-center gap-3 shrink-0">
-                <button className="h-12 px-5 flex items-center gap-2 bg-white border border-[#ECECF1] rounded-[16px] text-gray-700 font-semibold text-[15px] hover:bg-gray-50 transition-colors shadow-sm">
-                  <Upload className="w-5 h-5 text-gray-500" />
-                  <span className="hidden sm:inline">Import / Export</span>
-                  <span className="sm:hidden">Import</span>
-                  <ChevronDown className="w-4 h-4 text-gray-400 ml-1" />
-                </button>
-                <button className="h-12 px-5 sm:px-6 flex items-center gap-2 bg-gradient-to-r from-red-600 to-orange-400 rounded-[16px] text-white font-semibold text-[15px] hover:from-red-700 hover:to-orange-500 transition-colors shadow-[0_4px_14px_rgba(220,38,38,0.25)]">
-                  <Plus className="w-5 h-5" />
-                  <span className="hidden sm:inline">Create New Rate</span>
-                  <span className="sm:hidden">New Rate</span>
-                </button>
-              </div>
+            {/* Header Actions */}
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
+              <button className="h-12 px-5 flex items-center gap-2 bg-white border border-[#ECECF1] rounded-[16px] text-gray-700 font-semibold text-[15px] hover:bg-gray-50 transition-colors shadow-sm">
+                <Upload className="w-5 h-5 text-gray-500" />
+                <span className="hidden sm:inline">Import / Export</span>
+                <span className="sm:hidden">Import</span>
+                <ChevronDown className="w-4 h-4 text-gray-400 ml-1" />
+              </button>
+              <button onClick={() => setShowCreateModal(true)} className="h-12 px-5 sm:px-6 flex items-center gap-2 bg-gradient-to-r from-red-600 to-orange-400 rounded-[16px] text-white font-semibold text-[15px] hover:from-red-700 hover:to-orange-500 transition-colors shadow-[0_4px_14px_rgba(220,38,38,0.25)]">
+                <Plus className="w-5 h-5" />
+                <span className="hidden sm:inline">Create New Rate</span>
+                <span className="sm:hidden">New Rate</span>
+              </button>
             </div>
+          </div>
 
-            {/* Category Filter Bar */}
-            <CategoryTabs />
+          {/* Category Filter Bar */}
+          <CategoryTabs />
 
-            {/* Price Book Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {mockVenues.map((venue: any) => (
-                <div key={venue.id}>
-                  <VenueCard venue={venue} />
-                </div>
-              ))}
-              
-              <div>
-                <AddRateCard />
+          {/* Price Book Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {venues.map((venue: any) => (
+              <div key={venue.id}>
+                <VenueCard venue={venue} onDelete={handleDeleteVenue} />
               </div>
+            ))}
+            
+            <div onClick={() => setShowCreateModal(true)}>
+              <AddRateCard />
             </div>
+          </div>
 
             {/* Footer Area */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-8 mt-4 gap-6 border-t border-[#ECECF1]">
@@ -465,6 +387,90 @@ const GlobalPriceBook = () => {
           </div>
         </main>
       </div>
+
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[24px] shadow-xl w-full max-w-md overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-[#ECECF1] flex items-center justify-between bg-gray-50/50">
+              <div>
+                <h3 className="text-[18px] font-bold text-gray-900">Create Rate Card</h3>
+                <p className="text-[13px] text-gray-500 mt-1">Add a new item to the price book catalog.</p>
+              </div>
+              <button onClick={() => setShowCreateModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-[#ECECF1] text-gray-400 hover:text-gray-900 hover:bg-gray-50 transition-colors">
+                <span className="sr-only">Close</span>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-6 flex-1 overflow-y-auto space-y-4">
+              <div>
+                <label className="block text-[13px] font-bold text-gray-700 mb-1">Title</label>
+                <input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full h-10 px-3 bg-[#F8F9FC] border border-[#ECECF1] rounded-[12px] text-[14px] focus:outline-none focus:border-red-300" placeholder="e.g. Grand Sapphire Ballroom" />
+              </div>
+              <div>
+                <label className="block text-[13px] font-bold text-gray-700 mb-1">Venue Capacity & Features</label>
+                <input type="text" value={formData.capacityDetails} onChange={e => setFormData({...formData, capacityDetails: e.target.value})} className="w-full h-10 px-3 bg-[#F8F9FC] border border-[#ECECF1] rounded-[12px] text-[14px] focus:outline-none focus:border-red-300" placeholder="e.g. Capacity: up to 500 guests." />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[13px] font-bold text-gray-700 mb-1">Base Pricing</label>
+                  <input type="text" value={formData.basePricing} onChange={e => setFormData({...formData, basePricing: e.target.value})} className="w-full h-10 px-3 bg-[#F8F9FC] border border-[#ECECF1] rounded-[12px] text-[14px] focus:outline-none focus:border-red-300" placeholder="e.g. $12,500" />
+                </div>
+                <div>
+                  <label className="block text-[13px] font-bold text-gray-700 mb-1">Unit</label>
+                  <input type="text" value={formData.pricingUnit} onChange={e => setFormData({...formData, pricingUnit: e.target.value})} className="w-full h-10 px-3 bg-[#F8F9FC] border border-[#ECECF1] rounded-[12px] text-[14px] focus:outline-none focus:border-red-300" placeholder="e.g. day" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[13px] font-bold text-gray-700 mb-1">Service %</label>
+                  <input type="text" value={formData.adjustmentLabel} onChange={e => setFormData({...formData, adjustmentLabel: e.target.value})} className="w-full h-10 px-3 bg-[#F8F9FC] border border-[#ECECF1] rounded-[12px] text-[14px] focus:outline-none focus:border-red-300" placeholder="e.g. +15% Service" />
+                </div>
+                <div>
+                  <label className="block text-[13px] font-bold text-gray-700 mb-1">Estimated Total</label>
+                  <input type="text" value={formData.estimatedTotal} onChange={e => setFormData({...formData, estimatedTotal: e.target.value})} className="w-full h-10 px-3 bg-[#F8F9FC] border border-[#ECECF1] rounded-[12px] text-[14px] focus:outline-none focus:border-red-300" placeholder="e.g. $14,375" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[13px] font-bold text-gray-700 mb-1">Image Upload (Optional)</label>
+                <div className="flex items-center gap-3">
+                  <label className="flex-1 h-10 px-3 bg-[#F8F9FC] border border-[#ECECF1] rounded-[12px] flex items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors">
+                    <span className="text-[14px] text-gray-500 font-medium">
+                      {formData.imageUrl && formData.imageUrl.startsWith('data:image') ? 'Image Selected ✓' : 'Choose a file...'}
+                    </span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setFormData({...formData, imageUrl: reader.result as string});
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }} 
+                    />
+                  </label>
+                  {formData.imageUrl && formData.imageUrl.startsWith('data:image') && (
+                    <button 
+                      onClick={() => setFormData({...formData, imageUrl: ''})}
+                      className="h-10 px-4 rounded-[12px] text-red-500 hover:bg-red-50 text-[13px] font-bold transition-colors"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="p-6 border-t border-[#ECECF1] bg-gray-50/50 flex justify-end gap-3">
+              <button onClick={() => setShowCreateModal(false)} className="px-5 py-2.5 rounded-full text-[14px] font-bold text-gray-600 hover:bg-gray-100 transition-colors">Cancel</button>
+              <button onClick={handleSaveRateCard} className="px-6 py-2.5 rounded-full bg-red-600 hover:bg-red-700 text-white text-[14px] font-bold shadow-sm transition-colors">Save Rate Card</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

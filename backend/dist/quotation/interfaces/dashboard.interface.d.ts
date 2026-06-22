@@ -7,6 +7,7 @@ export interface StatusCounters {
     sent: number;
     accepted: number;
     expired: number;
+    pendingApproval?: number;
 }
 export interface FunnelMetrics {
     leadsQualified: number;

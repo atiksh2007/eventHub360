@@ -1,13 +1,24 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import TopHeader from '../components/TopHeader';
 import QuotationTable from '../components/QuotationTable';
 import SummaryMetricCard from '../components/SummaryMetricCard';
 import { Filter, Upload, Plus, TrendingUp, CheckCheck, Clock } from 'lucide-react';
+import { api } from '../services/api';
 
 const QuotationListPage = () => {
   const navigate = useNavigate();
+  const [quotations, setQuotations] = useState<any[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  useEffect(() => {
+    api.getLiveList('all', page, 10).then((res) => {
+      setQuotations(res.rows || []);
+      setTotalPages(res.totalPages || 1);
+    }).catch(console.error);
+  }, [page]);
   return (
     <div className="flex min-h-screen bg-[#F8F9FC] font-sans">
       <Sidebar />
@@ -46,7 +57,12 @@ const QuotationListPage = () => {
             </div>
 
             {/* Main Quotations Table Card */}
-            <QuotationTable />
+            <QuotationTable 
+              quotations={quotations} 
+              page={page} 
+              totalPages={totalPages} 
+              onPageChange={setPage} 
+            />
 
             {/* KPI Summary Section */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

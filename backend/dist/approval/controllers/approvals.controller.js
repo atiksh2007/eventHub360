@@ -14,6 +14,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ApprovalController = void 0;
 const common_1 = require("@nestjs/common");
+const jwt_auth_guard_1 = require("../../shared/auth/jwt-auth.guard");
 const approval_service_1 = require("../services/approval.service");
 const update_approval_dto_1 = require("../dto/update-approval.dto");
 let ApprovalController = class ApprovalController {
@@ -57,6 +58,7 @@ __decorate([
 ], ApprovalController.prototype, "updateApprovalState", null);
 exports.ApprovalController = ApprovalController = __decorate([
     (0, common_1.Controller)('approvals'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [approval_service_1.ApprovalService])
 ], ApprovalController);
 //# sourceMappingURL=approvals.controller.js.map

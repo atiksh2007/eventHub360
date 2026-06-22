@@ -17,12 +17,27 @@ const ApprovedQuotationsDashboard = () => {
     { title: 'Revenue Generated', value: '$3.8M', trend: '+15.4%', isPositive: true }
   ];
 
-  const approvedQuotes = [
-    { id: 'QT-2023-112', client: 'Starlight Hotels', event: 'Winter Gala', date: 'Oct 24, 2023', value: '$85,000', status: 'Approved' },
-    { id: 'QT-2023-108', client: 'Oceanic Corp', event: 'Annual Retreat', date: 'Oct 22, 2023', value: '$120,000', status: 'Approved' },
-    { id: 'QT-2023-105', client: 'Nexus Tech', event: 'Product Launch', date: 'Oct 20, 2023', value: '$245,000', status: 'Approved' },
-    { id: 'QT-2023-101', client: 'Global Finance', event: 'Executive Summit', date: 'Oct 18, 2023', value: '$65,000', status: 'Approved' },
-  ];
+  const [approvedQuotes, setApprovedQuotes] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    import('../services/api').then(({ api }) => {
+      // Fetch both SENT (internally approved) and ACCEPTED (client approved)
+      Promise.all([
+        api.getLiveList('SENT', 1, 50),
+        api.getLiveList('ACCEPTED', 1, 50)
+      ]).then(([sentData, acceptedData]: any[]) => {
+        const rows = [...(sentData?.rows || []), ...(acceptedData?.rows || [])];
+        setApprovedQuotes(rows.map((row: any) => ({
+          id: row.quoteNumber,
+          client: row.clientName,
+          event: row.eventType,
+          date: new Date(row.eventDate || Date.now()).toLocaleDateString(),
+          value: row.totalAmount,
+          status: row.status
+        })));
+      }).catch(err => console.error("Failed to load approved quotes:", err));
+    });
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-[#F8F9FC] font-sans">

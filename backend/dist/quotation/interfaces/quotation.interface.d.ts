@@ -35,11 +35,14 @@ export interface QuotationSection {
 export interface QuotationDetailResponse {
     quoteId: string;
     title: string;
+    clientName?: string;
+    eventType?: string;
     status: string;
     clientTier: string;
     lastEdited: string;
     eventDate: string;
     expectedGuests: string;
+    metadata?: any;
     sections: QuotationSection[];
     summary: {
         subtotal: string;

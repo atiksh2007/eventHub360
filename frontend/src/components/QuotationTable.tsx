@@ -58,7 +58,7 @@ const mockData = [
   }
 ];
 
-const QuotationTable = () => {
+const QuotationTable = ({ quotations = [], page = 1, totalPages = 1, onPageChange }: any) => {
   return (
     <div className="bg-[#F7F8FC] rounded-[28px] border border-[#ECECF1] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col">
       <div className="overflow-x-auto flex-1">
@@ -76,13 +76,44 @@ const QuotationTable = () => {
             </tr>
           </thead>
           <tbody className="bg-white">
-            {mockData.map((quote: any, idx: any) => (
+            {quotations.map((quote: any, idx: any) => (
               <QuotationRow key={idx} quotation={quote} />
             ))}
           </tbody>
         </table>
       </div>
-      <Pagination />
+      
+      {/* Simple Inline Pagination */}
+      {onPageChange && (
+        <div className="p-4 border-t border-[#ECECF1] flex items-center justify-between text-[13px] bg-white">
+          <span className="text-gray-500 font-medium">Showing page {page} of {totalPages}</span>
+          <div className="flex items-center gap-1">
+            <button 
+              disabled={page === 1}
+              onClick={() => onPageChange(page - 1)}
+              className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-50 disabled:opacity-50"
+            >
+              &lt;
+            </button>
+            {[...Array(totalPages)].map((_, i) => (
+              <button 
+                key={i}
+                onClick={() => onPageChange(i + 1)}
+                className={`w-8 h-8 flex items-center justify-center rounded-full font-bold ${page === i + 1 ? 'bg-red-600 text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button 
+              disabled={page === totalPages}
+              onClick={() => onPageChange(page + 1)}
+              className="w-8 h-8 flex items-center justify-center rounded-full text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

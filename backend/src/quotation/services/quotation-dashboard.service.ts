@@ -23,11 +23,12 @@ export class QuotationDashboardService {
    */
   async getDashboardSummary(): Promise<DashboardSummaryResponse> {
     // 1. Simultaneously calculate live status counters from the database 
-    const [drafts, sent, accepted, expired, allQuotes] = await this.prisma.$transaction([
+    const [drafts, sent, accepted, expired, pendingApproval, allQuotes] = await this.prisma.$transaction([
       this.prisma.quotation.count({ where: { status: { equals: 'Draft', mode: 'insensitive' } } }),
       this.prisma.quotation.count({ where: { status: { equals: 'Sent', mode: 'insensitive' } } }),
       this.prisma.quotation.count({ where: { status: { equals: 'Accepted', mode: 'insensitive' } } }),
       this.prisma.quotation.count({ where: { status: { equals: 'Expired', mode: 'insensitive' } } }),
+      this.prisma.quotation.count({ where: { status: { equals: 'PENDING_APPROVAL', mode: 'insensitive' } } }),
       this.prisma.quotation.findMany({ select: { total: true } })
     ]);
 
@@ -59,7 +60,7 @@ export class QuotationDashboardService {
           trendPct: "+8.0%" 
         }
       },
-      statusCounters: { drafts, sent, accepted, expired },
+      statusCounters: { drafts, sent, accepted, expired, pendingApproval },
       conversionFunnel: {
         leadsQualified: 1240,
         quotesCreated: totalQuotesCount,
@@ -110,11 +111,25 @@ export class QuotationDashboardService {
 
     return dbPending.map(q => {
       const totalAmt = Number(q.total);
+      const margin = Number(q.margin);
+      
+      let badgeType: 'HIGH PRIORITY' | 'STANDARD' | 'ESCALATED' = 'STANDARD';
+      const marginPct = totalAmt > 0 ? (margin / totalAmt) * 100 : 0;
+      
+      if (marginPct < 10) {
+        badgeType = 'ESCALATED'; // Needs Owner Exception
+      } else if (marginPct <= 19) {
+        badgeType = 'HIGH PRIORITY'; // Needs Manager Approval
+      } else {
+        badgeType = 'STANDARD'; 
+      }
+
       return {
-        title: `Event Plan Package for Lead #${q.lead_id.toString()}`,
+        quoteId: `QT-${q.quotation_id.toString()}`,
+        title: q.title || `Event Plan Package for Lead #${q.lead_id.toString()}`,
         creator: `Assigned Account Executive Manager`,
         amount: `$${totalAmt.toLocaleString('en-US', { minimumFractionDigits: 0 })}`,
-        badgeType: totalAmt > 100000 ? "HIGH PRIORITY" : "STANDARD"
+        badgeType
       };
     });
   }

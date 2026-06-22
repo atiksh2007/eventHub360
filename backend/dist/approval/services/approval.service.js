@@ -50,32 +50,40 @@ let ApprovalService = class ApprovalService {
         });
     }
     async processWorkflowAction(quoteId, action, feedback) {
-        const qId = BigInt(quoteId.replace(/\D/g, ''));
-        const statusMap = {
-            'APPROVE': 'approved',
-            'REJECT': 'rejected',
-            'DRAFT': 'pending',
-            'approve': 'approved',
-            'reject': 'rejected',
-            'draft': 'pending'
-        };
-        const actionUpper = action.toUpperCase();
-        return await this.prisma.$transaction(async (tx) => {
-            await tx.quoteApproval.updateMany({
-                where: { quotation_id: qId, status: 'pending' },
-                data: { status: statusMap[actionUpper] || 'approved', decided_at: new Date() }
+        try {
+            const qId = BigInt(quoteId.replace(/\D/g, ''));
+            const statusMap = {
+                'APPROVE': 'approved',
+                'REJECT': 'rejected',
+                'DRAFT': 'pending',
+                'approve': 'approved',
+                'reject': 'rejected',
+                'draft': 'pending'
+            };
+            const actionUpper = action.toUpperCase();
+            return await this.prisma.$transaction(async (tx) => {
+                await tx.quoteApproval.updateMany({
+                    where: { quotation_id: qId, status: 'pending' },
+                    data: { status: statusMap[actionUpper] || 'approved', decided_at: new Date() }
+                });
+                const quoteStatus = actionUpper === 'APPROVE' ? 'SENT' : 'DRAFT';
+                const updatedQuote = await tx.quotation.update({
+                    where: { quotation_id: qId },
+                    data: { status: quoteStatus }
+                });
+                return this.serializeBigInt({
+                    success: true,
+                    newStatus: quoteStatus,
+                    quotation_id: updatedQuote.quotation_id
+                });
             });
-            const quoteStatus = actionUpper === 'APPROVE' ? 'SENT' : 'DRAFT';
-            const updatedQuote = await tx.quotation.update({
-                where: { quotation_id: qId },
-                data: { status: quoteStatus }
-            });
-            return this.serializeBigInt({
-                success: true,
-                newStatus: quoteStatus,
-                quotation_id: updatedQuote.quotation_id
-            });
-        });
+        }
+        catch (error) {
+            if (error.code === 'P2025') {
+                throw new common_1.NotFoundException(`Quotation or Approval for ID ${quoteId} not found.`);
+            }
+            throw error;
+        }
     }
 };
 exports.ApprovalService = ApprovalService;

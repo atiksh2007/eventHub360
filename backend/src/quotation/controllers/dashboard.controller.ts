@@ -1,4 +1,5 @@
-import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../../shared/auth/jwt-auth.guard';
 import { QuotationDashboardService } from '../services/quotation-dashboard.service';
 import { 
   DashboardSummaryResponse, 
@@ -8,6 +9,7 @@ import {
 } from '../interfaces/dashboard.interface'; // Importing interfaces!
 
 @Controller('dashboard') // All routes below will automatically start with /api/dashboard
+@UseGuards(JwtAuthGuard)
 export class DashboardController {
   constructor(private readonly dashboardService: QuotationDashboardService) {}
 
@@ -17,6 +19,7 @@ export class DashboardController {
    */
   @Get('dashboard-summary')
   @HttpCode(HttpStatus.OK)
+  // @UseGuards(JwtAuthGuard)
   async getSummary(): Promise<DashboardSummaryResponse> {
     return await this.dashboardService.getDashboardSummary();
   }

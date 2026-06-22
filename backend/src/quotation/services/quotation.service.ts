@@ -1,5 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException, Inject, forwardRef, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Queue } from 'bullmq';
+import { InjectQueue } from '@nestjs/bullmq';
 import { 
   LiveQuotationRow, 
   LiveQuotationsResponse, 
@@ -27,21 +29,48 @@ function serializeBigInt(obj: any): any {
 }
 
 @Injectable()
-export class QuotationService {
+export class QuotationService implements OnModuleInit {
   
   constructor(
     @Inject(forwardRef(() => PricingService))
     private readonly pricingService: PricingService,
     @Inject(forwardRef(() => ApprovalService))
     private readonly approvalService: ApprovalService,
-    private readonly prisma: PrismaService 
+    private readonly prisma: PrismaService,
+    @InjectQueue('quotations') private readonly quotationQueue: Queue
   ) {}
+
+  async onModuleInit() {
+    // Schedule a repeatable job to check for expired quotes every 12 hours
+    await this.quotationQueue.add('checkExpiry', {}, {
+      repeat: {
+        pattern: '0 */12 * * *'
+      }
+    });
+  }
+
+  /**
+   * Delete a quote and all associated versions/items
+   */
+  async deleteQuote(id: string): Promise<{ success: boolean; message: string }> {
+    const qid = BigInt(id);
+    
+    // Check if it exists
+    const quote = await this.prisma.quotation.findUnique({ where: { quotation_id: qid } });
+    if (!quote) throw new NotFoundException('Quote not found');
+
+    // We rely on Prisma cascading deletes or delete manually if cascade isn't set up.
+    // For safety, let's just delete the quotation (assuming onDelete: Cascade is configured)
+    await this.prisma.quotation.delete({ where: { quotation_id: qid } });
+
+    return { success: true, message: `Quotation ${id} deleted successfully.` };
+  }
 
   /**
    * Serves the Live Quotations data list view directly from PostgreSQL
    */
-  async getLiveQuotations(statusFilter?: string, page: number = 1): Promise<LiveQuotationsResponse> {
-    const itemsPerPage = 10;
+  async getLiveQuotations(statusFilter?: string, page: number = 1, limit: number = 10): Promise<LiveQuotationsResponse> {
+    const itemsPerPage = limit;
     const skip = (page - 1) * itemsPerPage;
 
     const whereCondition: any = { is_active: true };
@@ -146,14 +175,18 @@ export class QuotationService {
     const marginNum = Number(quotation.margin);
     const marginCalculated = totalNum > 0 ? ((marginNum / totalNum) * 100).toFixed(1) : "0.0";
 
+    const meta: any = typeof quotation.metadata === 'object' ? quotation.metadata : {};
     return {
       quoteId: `Q-${quotation.quotation_id.toString()}`,
       title: quotation.title || `Event Plan Quote for Lead #${quotation.lead_id.toString()}`,
+      clientName: meta?.clientName || (quotation.title ? quotation.title.split(' for ')[1] : undefined),
+      eventType: meta?.eventType || (quotation.title ? quotation.title.split(' for ')[0] : undefined),
+      eventDate: quotation.event_date || 'TBD',
+      expectedGuests: quotation.expected_guests || 'TBD',
       status: quotation.status,
-      clientTier: quotation.client_tier || "NEW CLIENT",
-      lastEdited: "Synchronized with Database",
-      eventDate: quotation.event_date || "TBD",
-      expectedGuests: quotation.expected_guests || "TBD",
+      clientTier: quotation.client_tier || 'NEW CLIENT',
+      lastEdited: quotation.updated_at.toLocaleDateString(),
+      metadata: meta || {},
       sections: sections,
       summary: {
         subtotal: `$${subtotalNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
@@ -166,36 +199,80 @@ export class QuotationService {
   }
 
   /**
+   * Updates basic metadata of an existing quotation
+   */
+  async updateQuote(id: string, dto: CreateQuoteDto): Promise<{ success: boolean; message: string }> {
+    try {
+      const qid = BigInt(id.replace(/\D/g, ''));
+      const quote = await this.prisma.quotation.findUnique({ where: { quotation_id: qid } });
+      if (!quote) throw new NotFoundException('Quote not found');
+
+      const titleStr = `${dto.eventType || 'Event'} for ${dto.clientName || 'Unknown Client'}`;
+      const mergedMetadata = {
+        ...(typeof quote.metadata === 'object' ? quote.metadata : {}),
+        ...(typeof dto.metadata === 'object' ? dto.metadata : {}),
+        clientName: dto.clientName || (quote.metadata as any)?.clientName,
+        eventType: dto.eventType || (quote.metadata as any)?.eventType,
+      };
+      
+      await this.prisma.quotation.update({
+        where: { quotation_id: qid },
+        data: {
+          title: titleStr,
+          event_date: dto.eventDate || quote.event_date,
+          expected_guests: dto.expectedGuests ? dto.expectedGuests : quote.expected_guests,
+          metadata: mergedMetadata
+        }
+      });
+
+      return { success: true, message: `Quotation ${id} updated.` };
+    } catch (error) {
+      console.error('Error in updateQuote:', error);
+      throw new InternalServerErrorException(`Update failed: ${error.message}`);
+    }
+  }
+
+  /**
    * POST Action: Instantiates an initial quote document record directly into Postgres
    */
   async createNewQuotation(dto: CreateQuoteDto): Promise<QuotationDetailResponse> {
-    const expiresAt = new Date();
-    expiresAt.setMonth(expiresAt.getMonth() + 1);
+    try {
+      const expiresAt = new Date();
+      expiresAt.setMonth(expiresAt.getMonth() + 1);
+      const titleStr = `${dto.eventType || 'Event'} for ${dto.clientName || 'Unknown Client'}`;
+      const mergedMetadata = {
+        ...(typeof dto.metadata === 'object' ? dto.metadata : {}),
+        clientName: dto.clientName,
+        eventType: dto.eventType,
+      };
 
-    const createdQuote = await this.prisma.quotation.create({
-      data: {
-        company_id: BigInt(1), 
-        lead_id: BigInt(Math.floor(100 + Math.random() * 900)), 
-        version: 1,
-        currency: 'USD',
-        title: dto.clientName ? `${dto.eventType} for ${dto.clientName}` : "Untitled Event Plan",
-        client_tier: "NEW CLIENT",
-        event_date: dto.eventDate || "TBD",
-        expected_guests: dto.expectedGuests || "TBD",
-        discount_global: 0,
-        charge_service: 0,
-        subtotal: 0,
-        tax_total: 0,
-        total: 0,
-        cost_total: 0,
-        margin: 0,
-        status: 'DRAFT',
-        tenant_id: 'system_default',
-        expires_at: expiresAt,
-      }
-    });
+      const createdQuote = await this.prisma.quotation.create({
+        data: {
+          company_id: BigInt(1), 
+          lead_id: BigInt(Math.floor(100 + Math.random() * 900)), 
+          version: 1,
+          currency: 'USD',
+          title: titleStr,
+          client_tier: 'NEW CLIENT',
+          event_date: dto.eventDate || null,
+          expected_guests: dto.expectedGuests || null,
+          subtotal: 0,
+          tax_total: 0,
+          total: 0,
+          cost_total: 0,
+          margin: 0,
+          status: 'DRAFT',
+          expires_at: expiresAt,
+          tenant_id: 'system_default',
+          metadata: mergedMetadata
+        }
+      });
 
-    return this.getQuotationDetails(`Q-${createdQuote.quotation_id.toString()}`);
+      return await this.getQuotationDetails(`Q-${createdQuote.quotation_id.toString()}`);
+    } catch (error) {
+      console.error('Error in createNewQuotation:', error);
+      throw new InternalServerErrorException(`Create failed: ${error.message}`);
+    }
   }
 
   /**
@@ -213,8 +290,13 @@ export class QuotationService {
       throw new NotFoundException(`Quotation #${quoteId} not found.`);
     }
 
+    // [Temporarily disabled for demo]
+    // if (!['DRAFT', 'PENDING_APPROVAL'].includes(quotation.status.toUpperCase())) {
+    //   throw new BadRequestException('Quote is locked — create a new version to edit');
+    // }
+
     // Safety Lock Rule: Reset approval if modified in PENDING_APPROVAL
-    if (quotation.status === 'PENDING_APPROVAL') {
+    if (quotation.status.toUpperCase() === 'PENDING_APPROVAL') {
       await this.prisma.quotation.update({
         where: { quotation_id: qId },
         data: { status: 'DRAFT' }
@@ -325,7 +407,16 @@ export class QuotationService {
     const quotation = await this.prisma.quotation.findUnique({
       where: { quotation_id: qId }
     });
-    if (quotation && quotation.status === 'PENDING_APPROVAL') {
+    if (!quotation) {
+      throw new NotFoundException(`Quotation #${quoteId} not found.`);
+    }
+
+    // [Temporarily disabled for demo: allow recalculation]
+    // if (!['DRAFT', 'PENDING_APPROVAL'].includes(quotation.status.toUpperCase())) {
+    //   throw new BadRequestException('Quote is locked — create a new version to edit');
+    // }
+
+    if (quotation.status.toUpperCase() === 'PENDING_APPROVAL') {
       await this.prisma.quotation.update({
         where: { quotation_id: qId },
         data: { status: 'DRAFT' }
@@ -346,16 +437,17 @@ export class QuotationService {
       const discount = item?.discount !== undefined ? Number(item.discount) : (item?.discountPct !== undefined ? Number(item.discountPct) : 0);
       const taxRate = item?.taxRatePct !== undefined ? Number(item.taxRatePct) : 18;
 
-      const priceBase = cost * (1 + markup / 100);
+      const priceBase = item?.price !== undefined ? Number(item.price) : cost * (1 + markup / 100);
       const priceNet = priceBase * qty * (1 - discount / 100);
 
       const cgst = priceNet * 0.09;
       const sgst = priceNet * 0.09;
 
-      await this.prisma.quotationLine.create({
-        data: {
-          quotation_id: qId,
-          item_type: item?.categoryName || item?.item_type || "Custom Requirements",
+      try {
+        await this.prisma.quotationLine.create({
+          data: {
+            quotation_id: qId,
+            item_type: item?.categoryName || item?.item_type || "Custom Requirements",
           description: item?.description || "Selected Service Package",
           qty: qty,
           rate: priceBase,
@@ -371,6 +463,10 @@ export class QuotationService {
           tenant_id: 'system_default'
         }
       });
+      } catch (err) {
+        console.error("Prisma error inserting line item:", err);
+        throw err;
+      }
     }
 
     await this.recalculateQuoteTotals(qId);
@@ -380,6 +476,26 @@ export class QuotationService {
   async forceCalculation(quoteId: string, calcDto: any): Promise<any> {
     const qId = BigInt(quoteId.replace(/\D/g, ''));
     
+    const quotation = await this.prisma.quotation.findUnique({
+      where: { quotation_id: qId }
+    });
+    if (!quotation) {
+      throw new NotFoundException(`Quotation #${quoteId} not found.`);
+    }
+
+    // [Temporarily disabled for demo: allow recalculation]
+    // if (!['DRAFT', 'PENDING_APPROVAL'].includes(quotation.status.toUpperCase())) {
+    //   throw new BadRequestException('Quote is locked — create a new version to edit');
+    // }
+
+    if (quotation.status.toUpperCase() === 'PENDING_APPROVAL') {
+      await this.prisma.quotation.update({
+        where: { quotation_id: qId },
+        data: { status: 'DRAFT' }
+      });
+      this.approvalService.cancelApprovalWorkflow(`Q-${qId.toString()}`);
+    }
+
     await this.prisma.quotation.update({
       where: { quotation_id: qId },
       data: {
@@ -393,12 +509,13 @@ export class QuotationService {
   }
 
   async createApprovalRequest(quoteId: string, approvalDto: any): Promise<any> {
-    const qId = BigInt(quoteId.replace(/\D/g, ''));
-    
-    const quotation = await this.prisma.quotation.findUnique({
-      where: { quotation_id: qId },
-      include: { lines: true }
-    });
+    try {
+      const qId = BigInt(quoteId.replace(/\D/g, ''));
+      
+      const quotation = await this.prisma.quotation.findUnique({
+        where: { quotation_id: qId },
+        include: { lines: true }
+      });
 
     if (!quotation) {
       throw new NotFoundException(`Quotation not found.`);
@@ -428,19 +545,23 @@ export class QuotationService {
     let tier = '';
     let statusUpdate = '';
     let activeStepName = '';
+    let autoPriority = approvalDto.priority || 'STANDARD';
 
     if (discountPct <= 5 && marginPct >= 20) {
       tier = 'Tier 1 (Auto-Approve)';
       statusUpdate = 'SENT';
       activeStepName = 'Draft';
+      autoPriority = 'LOW';
     } else if ((discountPct >= 6 && discountPct <= 15) || (marginPct >= 10 && marginPct <= 19)) {
       tier = 'Tier 2 (Sales Manager)';
       statusUpdate = 'PENDING_APPROVAL';
       activeStepName = 'Manager Review';
+      autoPriority = 'STANDARD';
     } else {
       tier = 'Tier 3 (Company Owner Exception)';
       statusUpdate = 'PENDING_APPROVAL';
       activeStepName = 'Owner Review';
+      autoPriority = 'HIGH';
     }
 
     await this.prisma.quotation.update({
@@ -448,16 +569,20 @@ export class QuotationService {
       data: { status: statusUpdate }
     });
 
-    return this.approvalService.initializeApprovalTrack({
-      quoteNumber: quoteId,
-      eventName: quotation.title || "Custom Event Package",
-      totalValue: `$${Number(quotation.total).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-      priority: approvalDto.priority || 'Medium',
-      requester: approvalDto.requester,
-      executiveSummary: approvalDto.executiveSummary || `Approval request for ${quotation.title} with discount ${discountPct.toFixed(1)}% and margin ${marginPct.toFixed(1)}%.`,
-      activeStepName,
-      tier
-    });
+      return await this.approvalService.initializeApprovalTrack({
+        quoteNumber: quoteId,
+        eventName: quotation.title || "Custom Event Package",
+        totalValue: quotation.total.toString(),
+        priority: autoPriority,
+        requester: approvalDto.requester,
+        executiveSummary: approvalDto.executiveSummary || `Approval request for ${quotation.title} with discount ${discountPct.toFixed(1)}% and margin ${marginPct.toFixed(1)}%.`,
+        activeStepName,
+        tier
+      });
+    } catch (err) {
+      console.error("Error creating approval request:", err);
+      throw err;
+    }
   }
 
   async publishProposal(quoteId: string): Promise<any> {
@@ -469,17 +594,40 @@ export class QuotationService {
     return { quoteId, status: "PUBLISHED_EXTERNAL", publishedAt: new Date().toISOString() };
   }
 
+  private mockVenues = [
+    { id: "1", title: "Grand Sapphire Ballroom", tag: "Premium Venue", capacityDetails: "Capacity: up to 500 guests. Features 360-degree mapping and dual staircases.", basePricing: "$12,500", pricingUnit: "day", adjustmentLabel: "+15% Service", adjustmentSubtext: "Estimated Total", estimatedTotal: "$14,375", imageUrl: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    { id: "2", title: "Horizon Vista Terrace", tag: "Sky Deck", capacityDetails: "Rooftop access with panoramic city views. Features fire pits and glass railings.", basePricing: "$5,200", pricingUnit: "session", adjustmentLabel: "+10% Service", adjustmentSubtext: "Estimated Total", estimatedTotal: "$5,720", imageUrl: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    { id: "3", title: "Innovation Tech Hub", tag: "Conference", capacityDetails: "Theater-style seating for 200. HD projectors, live-streaming ready.", basePricing: "$8,900", pricingUnit: "day", adjustmentLabel: "Included Service", adjustmentSubtext: "Flat Rate", estimatedTotal: "$8,900", imageUrl: "https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    { id: "4", title: "The Verdant Atrium", tag: "Eco-Lounge", capacityDetails: "Indoor garden setting with sustainable climate control and living walls.", basePricing: "$4,500", pricingUnit: "day", adjustmentLabel: "+20% Seasonal", adjustmentSubtext: "Estimated Total", estimatedTotal: "$5,400", imageUrl: "https://images.unsplash.com/photo-1505843513577-22bb7d21e455?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    { id: "5", title: "The Reserve Cellar", tag: "Private Reserve", capacityDetails: "Intimate underground tasting room. Private barrel backdrop.", basePricing: "$2,800", pricingUnit: "night", adjustmentLabel: "Sommelier Incl.", adjustmentSubtext: "Exclusive Access", estimatedTotal: "$2,800", imageUrl: "https://images.unsplash.com/photo-1543362906-acfc16c67564?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    { id: "6", title: "Manor Estate Tent", tag: "Estate Grounds", capacityDetails: "All-weather luxury marquee on estate lawn. Floor-to-ceiling windows.", basePricing: "$15,000", pricingUnit: "event", adjustmentLabel: "+5% Logistics", adjustmentSubtext: "Setup Included", estimatedTotal: "$15,750", imageUrl: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    { id: "7", title: "Industrial Loft 402", tag: "Urban Chic", capacityDetails: "Flexible studio space for product launches and creative workshops.", basePricing: "$3,200", pricingUnit: "day", adjustmentLabel: "Standard Rate", adjustmentSubtext: "No Surcharge", estimatedTotal: "$3,200", imageUrl: "https://images.unsplash.com/photo-1513694203232-719a280e022f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" }
+  ];
+
   async getQuotationHistoryPriceBook(category?: string): Promise<PriceBookResponse> {
     return {
       category: category || "venues",
-      totalItems: 1,
+      totalItems: this.mockVenues.length,
       avgRateLabel: "Avg. Venue Rate",
-      avgRateValue: "$12,500",
-      items: [{ id: "VNU-001", title: "Grand Sapphire Ballroom", tag: "PREMIUM", capacityDetails: "500 guests", basePricing: "$12,500", pricingUnit: "/day", adjustmentLabel: "+15%", adjustmentSubtext: "Total", estimatedTotal: "$14,375", imageUrl: "" }]
+      avgRateValue: "$7,440",
+      items: this.mockVenues
     };
   }
 
   async createPriceBookRate(dto: CreateRateCardDto): Promise<RateCardItem> {
-    return { id: "VNU-999", title: dto.title, tag: "VENUE", capacityDetails: "", basePricing: "$0", pricingUnit: "/day", adjustmentLabel: "", adjustmentSubtext: "", estimatedTotal: "", imageUrl: "" };
+    const newVenue = {
+      id: "VNU-" + Date.now(),
+      title: dto.title,
+      tag: dto.tag || "VENUE",
+      capacityDetails: dto.capacityDetails || "",
+      basePricing: dto.basePricing || "$0",
+      pricingUnit: dto.pricingUnit || "/day",
+      adjustmentLabel: dto.adjustmentLabel || "",
+      adjustmentSubtext: dto.adjustmentSubtext || "",
+      estimatedTotal: dto.estimatedTotal || "",
+      imageUrl: dto.imageUrl || ""
+    };
+    this.mockVenues.push(newVenue);
+    return newVenue;
   }
 }

@@ -35,6 +35,10 @@ let QuotationController = class QuotationController {
         this.verifyTenantId(tenantId);
         return await this.qtnService.createBlankQuote(dto);
     }
+    async updateQuote(id, dto, tenantId) {
+        this.verifyTenantId(tenantId);
+        return await this.qtnService.updateQuote(id, dto);
+    }
     async appendItems(id, vid, dto, tenantId) {
         this.verifyTenantId(tenantId);
         return await this.qtnService.appendItemsToVersion(id, vid, dto.items);
@@ -55,6 +59,10 @@ let QuotationController = class QuotationController {
         this.verifyTenantId(tenantId);
         return await this.qtnService.publishProposal(id);
     }
+    async deleteQuote(id, tenantId) {
+        this.verifyTenantId(tenantId);
+        return await this.qtnService.deleteQuote(id);
+    }
     async getHistoryPriceBook(category, tenantId) {
         this.verifyTenantId(tenantId);
         return await this.qtnService.getQuotationHistoryPriceBook(category);
@@ -63,10 +71,11 @@ let QuotationController = class QuotationController {
         this.verifyTenantId(tenantId);
         return await this.qtnService.createPriceBookRate(createRateDto);
     }
-    async getLiveList(status, page, tenantId) {
+    async getLiveList(status, page, limit, tenantId) {
         this.verifyTenantId(tenantId);
         const pageNum = page ? parseInt(page, 10) : 1;
-        return await this.qtnService.getLiveQuotations(status, pageNum);
+        const limitNum = limit ? parseInt(limit, 10) : 10;
+        return await this.qtnService.getLiveQuotations(status, pageNum, limitNum);
     }
     async getDetails(id, tenantId) {
         this.verifyTenantId(tenantId);
@@ -95,6 +104,16 @@ __decorate([
     __metadata("design:paramtypes", [create_quote_dto_1.CreateQuoteDto, String]),
     __metadata("design:returntype", Promise)
 ], QuotationController.prototype, "createQuote", null);
+__decorate([
+    (0, common_1.Post)(':id/update'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Headers)('x-tenant-id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, create_quote_dto_1.CreateQuoteDto, String]),
+    __metadata("design:returntype", Promise)
+], QuotationController.prototype, "updateQuote", null);
 __decorate([
     (0, common_1.Post)(':id/versions/:vid/items'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
@@ -146,6 +165,15 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], QuotationController.prototype, "publishProposal", null);
 __decorate([
+    (0, common_1.Delete)(':id'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Headers)('x-tenant-id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], QuotationController.prototype, "deleteQuote", null);
+__decorate([
     (0, common_1.Get)('history-pricebook'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Query)('category')),
@@ -168,9 +196,10 @@ __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Query)('status')),
     __param(1, (0, common_1.Query)('page')),
-    __param(2, (0, common_1.Headers)('x-tenant-id')),
+    __param(2, (0, common_1.Query)('limit')),
+    __param(3, (0, common_1.Headers)('x-tenant-id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:paramtypes", [String, String, String, String]),
     __metadata("design:returntype", Promise)
 ], QuotationController.prototype, "getLiveList", null);
 __decorate([

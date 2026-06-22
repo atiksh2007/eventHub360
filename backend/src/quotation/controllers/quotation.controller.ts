@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, HttpCode, HttpStatus, Query, Param, Headers, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, HttpCode, HttpStatus, Query, Param, Headers, BadRequestException, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../../shared/auth/jwt-auth.guard';
 import { QuotationService } from '../services/quotation.service';
 import { CreateQuoteDto } from '../dto/create-quote.dto';
 import { AddLineItemsDto } from '../dto/add-item.dto';
@@ -9,6 +10,7 @@ import { LiveQuotationsResponse, QuotationDetailResponse, PriceBookResponse, Rat
 import { ApprovalService } from '../../approval/services/approval.service';
 
 @Controller('quotes')
+// @UseGuards(JwtAuthGuard)
 export class QuotationController {
   constructor(
     private readonly qtnService: QuotationService,
@@ -33,6 +35,20 @@ export class QuotationController {
   ): Promise<QuotationDetailResponse> {
     this.verifyTenantId(tenantId);
     return await this.qtnService.createBlankQuote(dto);
+  }
+
+  /**
+   * PUT /api/v1/quotes/:id -> Update quote basic metadata
+   */
+  @Post(':id/update') // Or @Put(':id'), using Post + /update for consistency with other routes here if preferred, but let's use @Put(':id') or @Post(':id/update')
+  @HttpCode(HttpStatus.OK)
+  async updateQuote(
+    @Param('id') id: string,
+    @Body() dto: CreateQuoteDto,
+    @Headers('x-tenant-id') tenantId: string
+  ) {
+    this.verifyTenantId(tenantId);
+    return await this.qtnService.updateQuote(id, dto);
   }
 
   /**
@@ -105,6 +121,19 @@ export class QuotationController {
     return await this.qtnService.publishProposal(id);
   }
 
+  /**
+   * DELETE /api/v1/quotes/:id -> Delete a quote and its items
+   */
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  async deleteQuote(
+    @Param('id') id: string,
+    @Headers('x-tenant-id') tenantId: string
+  ) {
+    this.verifyTenantId(tenantId);
+    return await this.qtnService.deleteQuote(id);
+  }
+
   // ==========================================
   // HISTORICAL & UTILITY PATHS
   // ==========================================
@@ -134,11 +163,13 @@ export class QuotationController {
   async getLiveList(
     @Query('status') status: string,
     @Query('page') page: string,
+    @Query('limit') limit: string,
     @Headers('x-tenant-id') tenantId: string
   ): Promise<LiveQuotationsResponse> {
     this.verifyTenantId(tenantId);
     const pageNum = page ? parseInt(page, 10) : 1;
-    return await this.qtnService.getLiveQuotations(status, pageNum);
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    return await this.qtnService.getLiveQuotations(status, pageNum, limitNum);
   }
 
   @Get('details/:id')

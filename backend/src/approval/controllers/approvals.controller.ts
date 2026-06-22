@@ -1,8 +1,10 @@
-import { Controller, Get, Patch, Body, HttpCode, HttpStatus, Param, Headers, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Patch, Body, HttpCode, HttpStatus, Param, Headers, BadRequestException, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../../shared/auth/jwt-auth.guard';
 import { ApprovalService } from '../services/approval.service';
 import { UpdateApprovalDto } from '../dto/update-approval.dto';
 
 @Controller('approvals')
+@UseGuards(JwtAuthGuard)
 export class ApprovalController {
   constructor(private readonly approvalService: ApprovalService) {}
 

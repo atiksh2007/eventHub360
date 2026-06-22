@@ -2,12 +2,12 @@ import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateQuoteDto {
   @IsString()
-  @IsNotEmpty({ message: 'Client name cannot be left blank' })
-  clientName: string;
+  @IsOptional()
+  clientName?: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'Event type specification is required' })
-  eventType: string;
+  @IsOptional()
+  eventType?: string;
 
   @IsString()
   @IsOptional()
@@ -16,4 +16,7 @@ export class CreateQuoteDto {
   @IsString()
   @IsOptional()
   expectedGuests?: string;
+
+  @IsOptional()
+  metadata?: any;
 }
