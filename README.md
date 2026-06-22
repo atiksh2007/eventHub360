@@ -18,12 +18,17 @@ Make sure you have the following installed on your machine:
 - PostgreSQL database (or Supabase connection string)
 
 ### 1. Database Setup
-EventHub360 uses Prisma for ORM with a PostgreSQL database.
+EventHub360 uses Prisma for ORM with a PostgreSQL database. When you clone this repository, you only get the schema (the blueprint). You must set up your own local database to run it.
 
-1. Ensure your PostgreSQL database is running.
-2. In the `backend` folder, create a `.env` file with your database connection string:
+1. Ensure your PostgreSQL database is installed and running on your computer.
+2. Open pgAdmin (or your terminal) and create a brand new, empty database (e.g., named `eventhub_db`).
+3. In the `backend` folder, create a `.env` file (this is not tracked by git for security) and add a connection string that points to your local database credentials:
    ```env
-   DATABASE_URL="postgresql://user:password@localhost:5432/eventhub360?schema=public"
+   DATABASE_URL="postgresql://YOUR_USERNAME:YOUR_PASSWORD@localhost:5432/eventhub_db?schema=public"
+   ```
+4. Open a terminal in the `backend` folder and push the schema to your fresh database to generate all the tables:
+   ```bash
+   npx prisma db push
    ```
 
 ### 2. Backend Setup (NestJS)
