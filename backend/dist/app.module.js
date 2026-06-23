@@ -16,6 +16,10 @@ const approval_module_1 = require("./approval/approval.module");
 const proposal_module_1 = require("./proposal/proposal.module");
 const bullmq_1 = require("@nestjs/bullmq");
 const auth_module_1 = require("./shared/auth/auth.module");
+const core_1 = require("@nestjs/core");
+const roles_guard_1 = require("./shared/auth/roles.guard");
+const tenant_interceptor_1 = require("./shared/interceptors/tenant.interceptor");
+const jwt_auth_guard_1 = require("./shared/auth/jwt-auth.guard");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -36,6 +40,20 @@ exports.AppModule = AppModule = __decorate([
             approval_module_1.ApprovalModule,
             proposal_module_1.ProposalModule,
         ],
+        providers: [
+            {
+                provide: core_1.APP_GUARD,
+                useClass: jwt_auth_guard_1.JwtAuthGuard,
+            },
+            {
+                provide: core_1.APP_GUARD,
+                useClass: roles_guard_1.RolesGuard,
+            },
+            {
+                provide: core_1.APP_INTERCEPTOR,
+                useClass: tenant_interceptor_1.TenantInterceptor,
+            }
+        ]
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map
