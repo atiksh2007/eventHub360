@@ -11,6 +11,14 @@ import { ProposalModule } from './proposal/proposal.module';
 import { BullModule } from '@nestjs/bullmq';
 import { AuthModule } from './shared/auth/auth.module';
 
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { RolesGuard } from './shared/auth/roles.guard';
+import { TenantInterceptor } from './shared/interceptors/tenant.interceptor';
+import { JwtAuthGuard } from './shared/auth/jwt-auth.guard';
+
+import { NotificationModule } from './shared/notification/notification.module';
+import { CommentModule } from './shared/comment/comment.module';
+
 @Module({
   imports: [
     // Global config setup
@@ -29,6 +37,8 @@ import { AuthModule } from './shared/auth/auth.module';
     
     // Shared Services
     AuthModule,
+    NotificationModule,
+    CommentModule,
     
     // Domain-Driven Design (DDD) Bounded Contexts
     QuotationModule,
@@ -36,5 +46,19 @@ import { AuthModule } from './shared/auth/auth.module';
     ApprovalModule,
     ProposalModule,
   ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard, // Apply JWT Auth globally by default
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard, // Apply Role-based access globally
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TenantInterceptor, // Apply Multi-Tenant injection globally
+    }
+  ]
 })
 export class AppModule {}

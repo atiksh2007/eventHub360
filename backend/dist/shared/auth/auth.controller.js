@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
 const jwt_1 = require("@nestjs/jwt");
+const public_decorator_1 = require("./public.decorator");
 let AuthController = class AuthController {
     constructor(jwtService) {
         this.jwtService = jwtService;
@@ -34,6 +35,7 @@ let AuthController = class AuthController {
 };
 exports.AuthController = AuthController;
 __decorate([
+    (0, public_decorator_1.Public)(),
     (0, common_1.Get)('token'),
     __param(0, (0, common_1.Query)('role')),
     __metadata("design:type", Function),

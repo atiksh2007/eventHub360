@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationService } from '../../shared/notification/notification.service';
 
 @Injectable()
 export class ApprovalService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationService: NotificationService
+  ) {}
 
   // Helper to convert BigInts to Strings recursively
   private serializeBigInt(obj: any): any {
@@ -49,6 +53,16 @@ export class ApprovalService {
         status: 'pending',
         tenant_id: 'system_default'
       }
+    });
+
+    // Notify user ID 1 (default user) that an approval was requested
+    await this.notificationService.createNotification({
+      userId: 1,
+      title: 'Approval Request',
+      description: `${params.requester} requested approval for "${params.eventName}" quote.`,
+      type: 'approval',
+      referenceId: Number(qId),
+      tenantId: 'system_default'
     });
 
     return this.serializeBigInt(approval);

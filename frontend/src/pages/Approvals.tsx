@@ -17,7 +17,7 @@ const Approvals = () => {
   const [actionResult, setActionResult] = useState<string | null>(null);
 
   React.useEffect(() => {
-    api.getPendingApprovals().then(data => {
+    api.getPendingApprovals().then((data: any) => {
       setPendingList(data || []);
       if (!approvalId) {
         if (data && data.length > 0 && data[0].quoteId) {
@@ -26,7 +26,7 @@ const Approvals = () => {
           setApprovalId('NONE_AVAILABLE');
         }
       }
-    }).catch(err => {
+    }).catch((err: any) => {
       console.error("Failed to load pending approvals", err);
       if (!approvalId) setApprovalId('NONE_AVAILABLE');
     });
