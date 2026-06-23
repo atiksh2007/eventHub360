@@ -46,6 +46,7 @@ model Quotation {
   lines          QuotationLine[]
   approvals      QuoteApproval[]
   proposals      ProposalDocument[]
+  comments       QuotationComment[]
 
   @@unique([quotation_id, version])
   @@map("quotation")
@@ -172,4 +173,61 @@ model ProposalDocument {
   quotation      Quotation  @relation(fields: [quotation_id], references: [quotation_id], onDelete: Cascade)
 
   @@map("proposal_documents")
+}
+
+// ==========================================
+// 6. NOTIFICATION TABLE
+// ==========================================
+model Notification {
+  notification_id BigInt     @id @default(autoincrement())
+  user_id         BigInt
+  title           String     @db.VarChar(120)
+  description     String     @db.Text
+  type            String     @db.VarChar(50)    // approval, mention, system
+  reference_id    BigInt?                       // e.g., quotation_id
+  is_read         Boolean    @default(false)
+  
+  // Implicit Tenant Columns
+  tenant_id       String     @db.VarChar(50)
+  created_at      DateTime   @default(now())
+
+  @@map("notification")
+}
+
+// ==========================================
+// 7. QUOTATION COMMENT TABLE (DISCUSSION)
+// ==========================================
+model QuotationComment {
+  comment_id      BigInt     @id @default(autoincrement())
+  quotation_id    BigInt
+  user_id         BigInt?    // Nullable because it could be a client
+  client_email    String?    @db.VarChar(255) // Stores verified client email
+  content         String     @db.Text
+  is_private      Boolean    @default(true)   // True = Internal only
+  
+  // Implicit Tenant Columns
+  tenant_id       String     @db.VarChar(50)
+  created_at      DateTime   @default(now())
+
+  // Relations
+  quotation       Quotation  @relation(fields: [quotation_id], references: [quotation_id], onDelete: Cascade)
+
+  @@map("quotation_comment")
+}
+
+// ==========================================
+// 8. AUDIT LOG TABLE (HISTORY CENTER)
+// ==========================================
+model AuditLog {
+  log_id         BigInt     @id @default(autoincrement())
+  action         String     @db.VarChar(100) // e.g., 'Quote Created', 'Quote Approved'
+  entity_type    String     @db.VarChar(50)  // e.g., 'quotation'
+  entity_id      String     @db.VarChar(100) // The quote number (e.g., 'Q-123')
+  user_name      String     @db.VarChar(100) // The user who performed the action
+  details        Json?      
+  
+  tenant_id      String     @db.VarChar(50)
+  created_at     DateTime   @default(now())
+
+  @@map("audit_log")
 }

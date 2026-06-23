@@ -121,6 +121,26 @@ const QuotationBuilder = () => {
     return subtotal;
   };
 
+  const calculateMargin = () => {
+    let subtotal = 0;
+    let costTotal = 0;
+    Object.values(sections).forEach((items: any) => {
+      items.forEach((item: any) => {
+        subtotal += (item.qty * item.price) * (1 - item.discount / 100);
+        costTotal += (item.cost || item.price * 0.7) * item.qty;
+      });
+    });
+
+    const discountGlobal = summary?.discountGlobal ? Number(summary.discountGlobal) : 0;
+    const serviceCharge = summary?.serviceCharge ? parseFloat(String(summary.serviceCharge).replace(/[$,]/g, '')) : 0;
+    
+    const revenueTotal = subtotal - discountGlobal + serviceCharge;
+    const profit = revenueTotal - costTotal;
+
+    if (revenueTotal <= 0) return 0;
+    return ((profit / revenueTotal) * 100).toFixed(1);
+  };
+
   const handleUpdate = (sectionKey: string, id: string, field: string, value: any) => {
     setSections(prev => {
       let additionalUpdates: any = {};
@@ -183,6 +203,7 @@ const QuotationBuilder = () => {
             qty: item.qty,
             price: item.price,
             discount: item.discount,
+            costUnit: item.cost, // Include the cost back so backend maintains accurate margin
           });
         });
       });
@@ -297,8 +318,8 @@ const QuotationBuilder = () => {
               <div className="w-full xl:w-[30%] relative">
                 <div className="sticky top-0 pt-2">
                   <QuoteSummaryCard subtotal={calculateSubtotal()} dbSummary={summary} onApplyPricingConfig={handleApplyPricingConfig} />
-                  <ProfitMarginCard margin={summary?.netProfitMarginPct?.replace('%','') || 0} />
-                  <EventInfoCard />
+                  <ProfitMarginCard margin={calculateMargin()} />
+                  <EventInfoCard quoteData={quoteData} />
                   <ProposalGeneratorCard />
                 </div>
               </div>

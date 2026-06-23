@@ -12,7 +12,7 @@ const TopHeader = () => {
   ];
 
   return (
-    <div className="h-[72px] bg-white border-b border-[#ECECF1] px-8 flex items-center justify-between sticky top-0 z-10 shrink-0">
+    <div className="h-[72px] bg-white border-b border-[#ECECF1] px-8 flex items-center justify-between sticky top-0 z-40 shrink-0">
       {/* Left Title */}
       <div className="w-[200px]">
         <h2 className="text-[20px] font-bold text-red-700 tracking-tight leading-tight cursor-pointer" onClick={() => navigate('/')}>

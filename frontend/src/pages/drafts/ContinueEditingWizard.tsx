@@ -16,6 +16,7 @@ const ContinueEditingWizard = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [saveStatus, setSaveStatus] = useState<any>(null);
   const [quoteId, setQuoteId] = useState<string | null>(idFromUrl);
+  const [summary, setSummary] = useState<any>(null);
   
   // Form State
   const [formData, setFormData] = useState({
@@ -45,11 +46,12 @@ const ContinueEditingWizard = () => {
 
   useEffect(() => {
     if (quoteId && quoteId !== 'NEW') {
-      api.getQuoteDetails(quoteId).then(res => {
+      api.getQuoteDetails(quoteId).then((res: any) => {
+        setSummary(res.summary);
         setFormData(prev => ({
           ...prev,
-          clientName: res.clientName || prev.clientName,
-          eventTitle: res.eventType || prev.eventTitle,
+          clientName: res.clientName || res.metadata?.clientName || prev.clientName,
+          eventTitle: res.eventType || res.metadata?.eventType || prev.eventTitle,
           startDate: (res.eventDate && res.eventDate !== 'TBD') ? res.eventDate : prev.startDate,
           attendees: (res.expectedGuests && res.expectedGuests !== 'TBD') ? res.expectedGuests : prev.attendees,
           email: res.metadata?.email || prev.email,
@@ -333,15 +335,15 @@ const ContinueEditingWizard = () => {
                     <div className="p-6 bg-[#F8F9FC] rounded-[20px] border border-[#ECECF1] w-full text-left grid grid-cols-2 gap-4 mt-4">
                       <div>
                         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Subtotal</p>
-                        <p className="text-[16px] font-bold text-gray-900">TBD</p>
+                        <p className="text-[16px] font-bold text-gray-900">{summary?.subtotal || 'TBD'}</p>
                       </div>
                       <div>
-                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tax (14%)</p>
-                        <p className="text-[16px] font-bold text-gray-900">TBD</p>
+                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tax (18%)</p>
+                        <p className="text-[16px] font-bold text-gray-900">{summary?.taxes || 'TBD'}</p>
                       </div>
                       <div className="col-span-2 pt-4 border-t border-[#ECECF1]">
                         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Grand Total</p>
-                        <p className="text-[24px] font-bold text-red-600">Pending Builder Calculation</p>
+                        <p className="text-[24px] font-bold text-red-600">{summary?.totalQuoteValue || 'Pending Builder Calculation'}</p>
                       </div>
                     </div>
                   </div>

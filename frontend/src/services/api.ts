@@ -5,7 +5,6 @@ const BASE_URL = import.meta.env.VITE_API_URL
   : 'http://localhost:3000/api/v1';
 const TENANT_ID = import.meta.env.VITE_TENANT_ID || 'default-tenant-hub';
 
-
 export const apiFetch = async (path: string, options: RequestInit = {}) => {
   let token = localStorage.getItem('dev_jwt');
   
@@ -30,6 +29,12 @@ export const apiFetch = async (path: string, options: RequestInit = {}) => {
     ...options,
     headers,
   });
+
+  if (response.status === 401 && !(options as any)._retry) {
+    localStorage.removeItem('dev_jwt');
+    return apiFetch(path, { ...options, _retry: true } as any);
+  }
+
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(errorText || `Request failed with status ${response.status}`);
@@ -62,6 +67,10 @@ export const api = {
 
   // Approvals
   getApprovalDetails: (id: string) => apiFetch(`/approvals/${id}`),
+
+  // Audit Logs
+  getAuditLogs: () => apiFetch('/audit-logs'),
+
   updateApprovalState: (appId: string, action: string, feedback?: string) => 
     apiFetch(`/approvals/${appId}`, {
       method: 'PATCH',
@@ -73,4 +82,20 @@ export const api = {
   getRecent: () => apiFetch('/dashboard/recent'),
   getPendingApprovals: () => apiFetch('/dashboard/pending-approvals'),
   getTopExecutives: () => apiFetch('/dashboard/top-executives'),
+
+  // Notifications & Comments
+  getNotifications: async () => apiFetch('/notifications'),
+  markAllNotificationsRead: async () => apiFetch('/notifications/read-all', { method: 'PATCH' }),
+  getComments: async (quoteId: string) => apiFetch(`/quotes/${quoteId}/comments`),
+  addComment: async (quoteId: string, content: string, clientEmail?: string, isPrivate: boolean = true) => 
+    apiFetch(`/quotes/${quoteId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content, clientEmail, isPrivate })
+    }),
+
+  // Proposals
+  generateProposal: async (data: any) => apiFetch('/proposals/generate', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
 };

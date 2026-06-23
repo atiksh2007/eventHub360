@@ -26,6 +26,7 @@ const PendingQuotationsCenter = () => {
   ];
 
   const [pendingQuotes, setPendingQuotes] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   React.useEffect(() => {
     import('../services/api').then(({ api }) => {
@@ -46,6 +47,13 @@ const PendingQuotationsCenter = () => {
       }).catch(err => console.error("Failed to load active quotes:", err));
     });
   }, []);
+
+  const filteredQuotes = pendingQuotes.filter(q => 
+    (q.id && q.id.toLowerCase().includes(searchQuery.toLowerCase())) || 
+    (q.client && q.client.toLowerCase().includes(searchQuery.toLowerCase())) || 
+    (q.event && q.event.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (q.stage && q.stage.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   return (
     <div className="flex min-h-screen bg-[#F8F9FC] font-sans">
@@ -122,7 +130,13 @@ const PendingQuotationsCenter = () => {
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input type="text" placeholder="Search quotes..." className="pl-9 pr-4 py-2 bg-[#F8F9FC] border border-[#ECECF1] rounded-full text-[13px] focus:outline-none focus:border-red-300 w-[250px]" />
+                    <input 
+                      type="text" 
+                      placeholder="Search quotes..." 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 pr-4 py-2 bg-[#F8F9FC] border border-[#ECECF1] rounded-full text-[13px] focus:outline-none focus:border-red-300 w-[250px]" 
+                    />
                   </div>
                   <button className="p-2 border border-[#ECECF1] rounded-full text-gray-600 hover:bg-gray-50">
                     <Filter className="w-4 h-4" />
@@ -144,8 +158,8 @@ const PendingQuotationsCenter = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {pendingQuotes.map((quote: any) => (
-                      <tr key={quote.id} className="border-b border-[#ECECF1] last:border-0 hover:bg-gray-50 transition-colors group cursor-pointer" onClick={() => navigate(`/quotations/${quote.id}`)}>
+                    {filteredQuotes.map((quote: any) => (
+                      <tr key={quote.id} className="border-b border-[#ECECF1] last:border-0 hover:bg-gray-50 transition-colors group cursor-pointer" onClick={() => navigate(`/quotations/drafts/continue?id=${quote.id}`)}>
                         <td className="py-4 px-4 text-[14px] font-bold text-gray-900">{quote.id}</td>
                         <td className="py-4 px-4">
                           <p className="text-[14px] font-bold text-gray-900">{quote.client}</p>
