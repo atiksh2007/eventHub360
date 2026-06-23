@@ -1,7 +1,9 @@
-// Load the .env file variables into memory
-require('dotenv').config();
+import * as dotenv from 'dotenv';
 
-module.exports = {
+// Load the .env file variables into memory
+dotenv.config();
+
+export default {
   schema: 'src/prisma/schema.prisma',
   datasource: {
     url: process.env.DATABASE_URL,
