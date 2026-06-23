@@ -12,12 +12,13 @@ const approval_service_1 = require("./services/approval.service");
 const approvals_controller_1 = require("./controllers/approvals.controller");
 const quotation_module_1 = require("../quotation/quotation.module");
 const prisma_module_1 = require("../prisma/prisma.module");
+const notification_module_1 = require("../shared/notification/notification.module");
 let ApprovalModule = class ApprovalModule {
 };
 exports.ApprovalModule = ApprovalModule;
 exports.ApprovalModule = ApprovalModule = __decorate([
     (0, common_1.Module)({
-        imports: [prisma_module_1.PrismaModule, (0, common_1.forwardRef)(() => quotation_module_1.QuotationModule)],
+        imports: [prisma_module_1.PrismaModule, notification_module_1.NotificationModule, (0, common_1.forwardRef)(() => quotation_module_1.QuotationModule)],
         controllers: [approvals_controller_1.ApprovalController],
         providers: [approval_service_1.ApprovalService],
         exports: [approval_service_1.ApprovalService],

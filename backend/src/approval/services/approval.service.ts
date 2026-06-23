@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationService } from '../../shared/notification/notification.service';
+import { AuditLogService } from '../../audit-log/services/audit-log.service';
 
 @Injectable()
 export class ApprovalService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationService: NotificationService
+    private readonly notificationService: NotificationService,
+    private readonly auditLogService: AuditLogService
   ) {}
 
   // Helper to convert BigInts to Strings recursively
@@ -65,6 +67,14 @@ export class ApprovalService {
       tenantId: 'system_default'
     });
 
+    await this.auditLogService.createLog(
+      'Approval Requested',
+      'quotation',
+      params.quoteNumber,
+      params.requester,
+      'system_default'
+    );
+
     return this.serializeBigInt(approval);
   }
 
@@ -93,7 +103,7 @@ export class ApprovalService {
 
       const actionUpper = action.toUpperCase();
 
-      return await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
         await tx.quoteApproval.updateMany({
           where: { quotation_id: qId, status: 'pending' },
           data: { status: statusMap[actionUpper] || 'approved', decided_at: new Date() }
@@ -111,6 +121,21 @@ export class ApprovalService {
           quotation_id: updatedQuote.quotation_id 
         });
       });
+
+      let logMessage = 'Workflow Updated';
+      if (actionUpper === 'APPROVE') logMessage = 'Quote Approved';
+      else if (actionUpper === 'REJECT') logMessage = 'Quote Rejected';
+
+      await this.auditLogService.createLog(
+        logMessage,
+        'quotation',
+        quoteId,
+        'System User', // In a real app we'd grab from token
+        'system_default',
+        { feedback }
+      );
+
+      return result;
     } catch (error: any) {
       if (error.code === 'P2025') {
         throw new NotFoundException(`Quotation or Approval for ID ${quoteId} not found.`);

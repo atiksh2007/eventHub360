@@ -28,6 +28,8 @@ function serializeBigInt(obj: any): any {
   return obj;
 }
 
+import { AuditLogService } from '../../audit-log/services/audit-log.service';
+
 @Injectable()
 export class QuotationService implements OnModuleInit {
   
@@ -37,7 +39,8 @@ export class QuotationService implements OnModuleInit {
     @Inject(forwardRef(() => ApprovalService))
     private readonly approvalService: ApprovalService,
     private readonly prisma: PrismaService,
-    @InjectQueue('quotations') private readonly quotationQueue: Queue
+    @InjectQueue('quotations') private readonly quotationQueue: Queue,
+    private readonly auditLogService: AuditLogService
   ) {}
 
   async onModuleInit() {
@@ -154,6 +157,7 @@ export class QuotationService implements OnModuleInit {
         description: item.description,
         qty: Number(item.qty),
         price: rateNum,
+        cost: Number(item.cost || 0),
         discount: Number(item.discount_pct || 0),
         total: `$${amountNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
       };
@@ -268,7 +272,18 @@ export class QuotationService implements OnModuleInit {
         }
       });
 
-      return await this.getQuotationDetails(`Q-${createdQuote.quotation_id.toString()}`);
+      const quoteNum = `Q-${createdQuote.quotation_id.toString()}`;
+      
+      // Log creation
+      await this.auditLogService.createLog(
+        'Quote Created',
+        'quotation',
+        quoteNum,
+        'System User', // Mocked user
+        'system_default'
+      );
+
+      return await this.getQuotationDetails(quoteNum);
     } catch (error) {
       console.error('Error in createNewQuotation:', error);
       throw new InternalServerErrorException(`Create failed: ${error.message}`);
@@ -374,8 +389,9 @@ export class QuotationService implements OnModuleInit {
 
     // Grand Total: (Sum(Price_net) - Discount_global) + Tax_total + Charge_service
     const finalTotal = (subtotal - discGlobal) + taxTotal + serviceCharge;
-    // Profit Margin %
-    const margin = subtotal - costTotal;
+    
+    // Profit Margin: Subtotal Revenue - Global Discount + Service Charge - Cost
+    const margin = (subtotal - discGlobal + serviceCharge) - costTotal;
 
     await this.prisma.quotation.update({
       where: { quotation_id: quotationId },

@@ -1,6 +1,7 @@
-import React from 'react';
-import { Filter, Download } from 'lucide-react';
+import React, { useState } from 'react';
+import { Filter, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 
 const getStatusStyle = (status: any) => {
   switch (status) {
@@ -13,11 +14,30 @@ const getStatusStyle = (status: any) => {
 
 const RecentQuotationTable = ({ quotations }: any) => {
   const navigate = useNavigate();
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
   const displayQuotes = quotations || [
     { id: '#QUO-8921', client: 'Skyline Ventures', amount: '$24,500', status: 'Accepted', initial: 'S', color: 'bg-indigo-100 text-indigo-700' },
     { id: '#QUO-8919', client: 'Prism Logistics', amount: '$18,200', status: 'Sent', initial: 'P', color: 'bg-orange-100 text-orange-700' },
     { id: '#QUO-8918', client: 'NexGen Media', amount: '$115,000', status: 'Draft', initial: 'N', color: 'bg-rose-100 text-rose-700' },
   ];
+
+  const totalPages = Math.ceil(displayQuotes.length / itemsPerPage);
+  const currentQuotes = displayQuotes.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const handleDownloadExcel = () => {
+    const exportData = displayQuotes.map((q: any) => ({
+      'Quote ID': q.id || q.quoteNumber,
+      'Client': q.client || q.clientName,
+      'Amount': q.amount || q.totalAmount,
+      'Status': q.status
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Recent Quotations");
+    XLSX.writeFile(workbook, "Recent_Quotations.xlsx");
+  };
 
   return (
     <div className="bg-white rounded-[24px] shadow-[0_2px_12px_rgba(0,0,0,0.02)] border border-[#ECECF1] overflow-hidden flex flex-col h-full">
@@ -27,7 +47,11 @@ const RecentQuotationTable = ({ quotations }: any) => {
           <button className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors">
             <Filter className="w-4 h-4" />
           </button>
-          <button className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors">
+          <button 
+            onClick={handleDownloadExcel}
+            className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+            title="Download Excel"
+          >
             <Download className="w-4 h-4" />
           </button>
         </div>
@@ -44,7 +68,7 @@ const RecentQuotationTable = ({ quotations }: any) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {displayQuotes.map((quote: any, idx: any) => (
+            {currentQuotes.map((quote: any, idx: any) => (
               <tr 
                 key={idx} 
                 onClick={() => navigate(`/quotation-builder?id=${quote.id || quote.quoteNumber}`)}
@@ -74,6 +98,30 @@ const RecentQuotationTable = ({ quotations }: any) => {
           </tbody>
         </table>
       </div>
+      
+      {totalPages > 1 && (
+        <div className="p-4 flex items-center justify-between border-t border-[#ECECF1] bg-gray-50/30">
+          <span className="text-sm text-gray-500">
+            Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, displayQuotes.length)} of {displayQuotes.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <button 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              className="p-1.5 rounded-lg border border-gray-200 text-gray-500 disabled:opacity-50 hover:bg-white"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button 
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              className="p-1.5 rounded-lg border border-gray-200 text-gray-500 disabled:opacity-50 hover:bg-white"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

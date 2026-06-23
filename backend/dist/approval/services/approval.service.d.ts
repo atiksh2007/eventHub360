@@ -1,7 +1,11 @@
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationService } from '../../shared/notification/notification.service';
+import { AuditLogService } from '../../audit-log/services/audit-log.service';
 export declare class ApprovalService {
     private readonly prisma;
-    constructor(prisma: PrismaService);
+    private readonly notificationService;
+    private readonly auditLogService;
+    constructor(prisma: PrismaService, notificationService: NotificationService, auditLogService: AuditLogService);
     private serializeBigInt;
     getApprovalDetails(quoteId: string): Promise<any>;
     initializeApprovalTrack(params: {

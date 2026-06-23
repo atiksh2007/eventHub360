@@ -12,9 +12,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ApprovalService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
+const notification_service_1 = require("../../shared/notification/notification.service");
+const audit_log_service_1 = require("../../audit-log/services/audit-log.service");
 let ApprovalService = class ApprovalService {
-    constructor(prisma) {
+    constructor(prisma, notificationService, auditLogService) {
         this.prisma = prisma;
+        this.notificationService = notificationService;
+        this.auditLogService = auditLogService;
     }
     serializeBigInt(obj) {
         return JSON.parse(JSON.stringify(obj, (key, value) => typeof value === 'bigint' ? value.toString() : value));
@@ -41,6 +45,15 @@ let ApprovalService = class ApprovalService {
                 tenant_id: 'system_default'
             }
         });
+        await this.notificationService.createNotification({
+            userId: 1,
+            title: 'Approval Request',
+            description: `${params.requester} requested approval for "${params.eventName}" quote.`,
+            type: 'approval',
+            referenceId: Number(qId),
+            tenantId: 'system_default'
+        });
+        await this.auditLogService.createLog('Approval Requested', 'quotation', params.quoteNumber, params.requester, 'system_default');
         return this.serializeBigInt(approval);
     }
     async cancelApprovalWorkflow(quoteNumber) {
@@ -61,7 +74,7 @@ let ApprovalService = class ApprovalService {
                 'draft': 'pending'
             };
             const actionUpper = action.toUpperCase();
-            return await this.prisma.$transaction(async (tx) => {
+            const result = await this.prisma.$transaction(async (tx) => {
                 await tx.quoteApproval.updateMany({
                     where: { quotation_id: qId, status: 'pending' },
                     data: { status: statusMap[actionUpper] || 'approved', decided_at: new Date() }
@@ -77,6 +90,13 @@ let ApprovalService = class ApprovalService {
                     quotation_id: updatedQuote.quotation_id
                 });
             });
+            let logMessage = 'Workflow Updated';
+            if (actionUpper === 'APPROVE')
+                logMessage = 'Quote Approved';
+            else if (actionUpper === 'REJECT')
+                logMessage = 'Quote Rejected';
+            await this.auditLogService.createLog(logMessage, 'quotation', quoteId, 'System User', 'system_default', { feedback });
+            return result;
         }
         catch (error) {
             if (error.code === 'P2025') {
@@ -89,6 +109,8 @@ let ApprovalService = class ApprovalService {
 exports.ApprovalService = ApprovalService;
 exports.ApprovalService = ApprovalService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        notification_service_1.NotificationService,
+        audit_log_service_1.AuditLogService])
 ], ApprovalService);
 //# sourceMappingURL=approval.service.js.map

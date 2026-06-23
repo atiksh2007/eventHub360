@@ -67,6 +67,10 @@ export const api = {
 
   // Approvals
   getApprovalDetails: (id: string) => apiFetch(`/approvals/${id}`),
+
+  // Audit Logs
+  getAuditLogs: () => apiFetch('/audit-logs'),
+
   updateApprovalState: (appId: string, action: string, feedback?: string) => 
     apiFetch(`/approvals/${appId}`, {
       method: 'PATCH',

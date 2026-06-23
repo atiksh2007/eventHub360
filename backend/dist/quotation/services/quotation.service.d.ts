@@ -6,12 +6,14 @@ import { CreateQuoteDto } from '../dto/create-quote.dto';
 import { CreateRateCardDto } from '../../pricing/dto/create-rate-card.dto';
 import { PricingService } from '../../pricing/services/pricing.service';
 import { ApprovalService } from '../../approval/services/approval.service';
+import { AuditLogService } from '../../audit-log/services/audit-log.service';
 export declare class QuotationService implements OnModuleInit {
     private readonly pricingService;
     private readonly approvalService;
     private readonly prisma;
     private readonly quotationQueue;
-    constructor(pricingService: PricingService, approvalService: ApprovalService, prisma: PrismaService, quotationQueue: Queue);
+    private readonly auditLogService;
+    constructor(pricingService: PricingService, approvalService: ApprovalService, prisma: PrismaService, quotationQueue: Queue, auditLogService: AuditLogService);
     onModuleInit(): Promise<void>;
     deleteQuote(id: string): Promise<{
         success: boolean;
