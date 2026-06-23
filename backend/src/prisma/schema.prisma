@@ -214,3 +214,20 @@ model QuotationComment {
 
   @@map("quotation_comment")
 }
+
+// ==========================================
+// 8. AUDIT LOG TABLE (HISTORY CENTER)
+// ==========================================
+model AuditLog {
+  log_id         BigInt     @id @default(autoincrement())
+  action         String     @db.VarChar(100) // e.g., 'Quote Created', 'Quote Approved'
+  entity_type    String     @db.VarChar(50)  // e.g., 'quotation'
+  entity_id      String     @db.VarChar(100) // The quote number (e.g., 'Q-123')
+  user_name      String     @db.VarChar(100) // The user who performed the action
+  details        Json?      
+  
+  tenant_id      String     @db.VarChar(50)
+  created_at     DateTime   @default(now())
+
+  @@map("audit_log")
+}

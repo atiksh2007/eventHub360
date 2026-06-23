@@ -35,12 +35,14 @@ function serializeBigInt(obj) {
     }
     return obj;
 }
+const audit_log_service_1 = require("../../audit-log/services/audit-log.service");
 let QuotationService = class QuotationService {
-    constructor(pricingService, approvalService, prisma, quotationQueue) {
+    constructor(pricingService, approvalService, prisma, quotationQueue, auditLogService) {
         this.pricingService = pricingService;
         this.approvalService = approvalService;
         this.prisma = prisma;
         this.quotationQueue = quotationQueue;
+        this.auditLogService = auditLogService;
         this.mockVenues = [
             { id: "1", title: "Grand Sapphire Ballroom", tag: "Premium Venue", capacityDetails: "Capacity: up to 500 guests. Features 360-degree mapping and dual staircases.", basePricing: "$12,500", pricingUnit: "day", adjustmentLabel: "+15% Service", adjustmentSubtext: "Estimated Total", estimatedTotal: "$14,375", imageUrl: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
             { id: "2", title: "Horizon Vista Terrace", tag: "Sky Deck", capacityDetails: "Rooftop access with panoramic city views. Features fire pits and glass railings.", basePricing: "$5,200", pricingUnit: "session", adjustmentLabel: "+10% Service", adjustmentSubtext: "Estimated Total", estimatedTotal: "$5,720", imageUrl: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
@@ -236,7 +238,9 @@ let QuotationService = class QuotationService {
                     metadata: mergedMetadata
                 }
             });
-            return await this.getQuotationDetails(`Q-${createdQuote.quotation_id.toString()}`);
+            const quoteNum = `Q-${createdQuote.quotation_id.toString()}`;
+            await this.auditLogService.createLog('Quote Created', 'quotation', quoteNum, 'System User', 'system_default');
+            return await this.getQuotationDetails(quoteNum);
         }
         catch (error) {
             console.error('Error in createNewQuotation:', error);
@@ -526,6 +530,7 @@ exports.QuotationService = QuotationService = __decorate([
     __metadata("design:paramtypes", [pricing_service_1.PricingService,
         approval_service_1.ApprovalService,
         prisma_service_1.PrismaService,
-        bullmq_1.Queue])
+        bullmq_1.Queue,
+        audit_log_service_1.AuditLogService])
 ], QuotationService);
 //# sourceMappingURL=quotation.service.js.map

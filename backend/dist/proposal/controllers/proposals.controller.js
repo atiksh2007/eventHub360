@@ -22,6 +22,13 @@ let ProposalsController = class ProposalsController {
     async getProposal(id) {
         return await this.proposalService.getProposalById(id);
     }
+    async generateProposal(body, req) {
+        const tenantId = req.tenantContext?.tenant_id || 'system_default';
+        return await this.proposalService.generatePdf({
+            ...body,
+            tenantId
+        });
+    }
 };
 exports.ProposalsController = ProposalsController;
 __decorate([
@@ -31,6 +38,14 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], ProposalsController.prototype, "getProposal", null);
+__decorate([
+    (0, common_1.Post)('generate'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], ProposalsController.prototype, "generateProposal", null);
 exports.ProposalsController = ProposalsController = __decorate([
     (0, common_1.Controller)('proposals'),
     __metadata("design:paramtypes", [proposal_integration_service_1.ProposalService])

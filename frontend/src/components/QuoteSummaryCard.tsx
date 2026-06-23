@@ -2,23 +2,34 @@ import React from 'react';
 import { Activity } from 'lucide-react';
 
 const QuoteSummaryCard = ({ subtotal, dbSummary, onApplyPricingConfig }: any) => {
-  // Prefer server-computed values from DB when available
-  const taxes = dbSummary?.taxes
-    ? parseFloat(String(dbSummary.taxes).replace(/[$,]/g, ''))
-    : subtotal * 0.18;
-  const serviceCharge = dbSummary?.serviceCharge
+  // Initialize from dbSummary if available, otherwise 0
+  const initialDiscount = dbSummary?.discountGlobal || 0;
+  const initialServiceCharge = dbSummary?.serviceCharge
     ? parseFloat(String(dbSummary.serviceCharge).replace(/[$,]/g, ''))
-    : subtotal * 0.10;
-  const total = dbSummary?.totalQuoteValue
-    ? parseFloat(String(dbSummary.totalQuoteValue).replace(/[$,]/g, ''))
-    : subtotal + taxes + serviceCharge;
+    : 0;
 
-  const displaySubtotal = dbSummary?.subtotal
-    ? parseFloat(String(dbSummary.subtotal).replace(/[$,]/g, ''))
-    : subtotal;
+  const [discountGlobal, setDiscountGlobal] = React.useState<number>(initialDiscount);
+  const [chargeService, setChargeService] = React.useState<number>(initialServiceCharge);
 
-  const [discountGlobal, setDiscountGlobal] = React.useState<number>(0);
-  const [chargeService, setChargeService] = React.useState<number>(0);
+  // Sync state if dbSummary loads later
+  React.useEffect(() => {
+    if (dbSummary?.discountGlobal) {
+      setDiscountGlobal(Number(dbSummary.discountGlobal));
+    }
+    if (dbSummary?.serviceCharge) {
+      setChargeService(parseFloat(String(dbSummary.serviceCharge).replace(/[$,]/g, '')));
+    }
+  }, [dbSummary]);
+
+  // ALWAYS use the live subtotal from the builder for real-time updates!
+  const displaySubtotal = subtotal;
+
+  // Calculate live taxes based on net subtotal after global discount
+  const taxableAmount = Math.max(0, displaySubtotal - discountGlobal);
+  const taxes = taxableAmount * 0.18; // 18% Tax
+
+  // Calculate live grand total
+  const total = taxableAmount + taxes + chargeService;
 
   return (
     <div className="bg-white rounded-[32px] p-8 shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-[#ECECF1] mb-6">

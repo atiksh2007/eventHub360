@@ -6,11 +6,16 @@ import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
 
+import { AuditLogService } from '../../audit-log/services/audit-log.service';
+
 @Injectable()
 export class ProposalService {
   private s3: S3Client;
 
-  constructor(private prisma: PrismaService) {
+  constructor(
+    private prisma: PrismaService,
+    private readonly auditLogService: AuditLogService
+  ) {
     // Configure S3 client for local MinIO
     this.s3 = new S3Client({
       endpoint: process.env.MINIO_ENDPOINT || 'http://127.0.0.1:9000',
@@ -78,9 +83,9 @@ export class ProposalService {
     });
 
     // 2. Render PDF using Puppeteer
-    const browser = await puppeteer.launch({ headless: 'new' });
+    const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.setContent(html, { waitUntil: 'load' });
     const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
     await browser.close();
 
@@ -125,6 +130,15 @@ export class ProposalService {
       where: { quotation_id: BigInt(numericQuoteId) },
       data: { status: 'SENT' }
     });
+
+    await this.auditLogService.createLog(
+      'Proposal Generated',
+      'quotation',
+      quoteId,
+      'System User',
+      tenantId || 'system_default',
+      { fileUrl, styleTheme }
+    );
 
     return {
       success: true,

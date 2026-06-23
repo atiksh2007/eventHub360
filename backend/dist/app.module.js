@@ -20,6 +20,9 @@ const core_1 = require("@nestjs/core");
 const roles_guard_1 = require("./shared/auth/roles.guard");
 const tenant_interceptor_1 = require("./shared/interceptors/tenant.interceptor");
 const jwt_auth_guard_1 = require("./shared/auth/jwt-auth.guard");
+const notification_module_1 = require("./shared/notification/notification.module");
+const comment_module_1 = require("./shared/comment/comment.module");
+const audit_log_module_1 = require("./audit-log/audit-log.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -35,10 +38,13 @@ exports.AppModule = AppModule = __decorate([
                 },
             }),
             auth_module_1.AuthModule,
+            notification_module_1.NotificationModule,
+            comment_module_1.CommentModule,
             quotation_module_1.QuotationModule,
             pricing_module_1.PricingModule,
             approval_module_1.ApprovalModule,
             proposal_module_1.ProposalModule,
+            audit_log_module_1.AuditLogModule,
         ],
         providers: [
             {

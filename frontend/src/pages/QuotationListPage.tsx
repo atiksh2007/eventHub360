@@ -12,13 +12,26 @@ const QuotationListPage = () => {
   const [quotations, setQuotations] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [marginFilter, setMarginFilter] = useState('ALL');
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
   useEffect(() => {
-    api.getLiveList('all', page, 10).then((res) => {
+    api.getLiveList('all', page, 10).then((res: any) => {
       setQuotations(res.rows || []);
       setTotalPages(res.totalPages || 1);
     }).catch(console.error);
   }, [page]);
+
+  const filteredQuotations = quotations.filter((q: any) => {
+    if (marginFilter === 'ALL') return true;
+    const marginStr = q.marginPct || q.margin || '0%';
+    const marginVal = parseFloat(marginStr.replace('%', ''));
+    if (marginFilter === 'ESCALATED') return marginVal < 10; // Low Margin
+    if (marginFilter === 'HIGH') return marginVal >= 10 && marginVal <= 19; // Medium Margin
+    if (marginFilter === 'STANDARD') return marginVal > 19; // High Margin
+    return true;
+  });
+
   return (
     <div className="flex min-h-screen bg-[#F8F9FC] font-sans">
       <Sidebar />
@@ -42,10 +55,52 @@ const QuotationListPage = () => {
               
               {/* Header Actions */}
               <div className="flex items-center gap-3">
-                <button className="h-12 px-5 flex items-center gap-2 bg-white border border-[#ECECF1] rounded-[16px] text-gray-700 font-semibold text-[15px] hover:bg-gray-50 transition-colors shadow-sm">
-                  <Filter className="w-5 h-5 text-gray-500" />
-                  Filter
-                </button>
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                    className={`h-12 px-5 flex items-center gap-2 border rounded-[16px] font-semibold text-[15px] transition-colors shadow-sm ${
+                      marginFilter !== 'ALL' 
+                        ? 'bg-red-50 border-red-200 text-red-700' 
+                        : 'bg-white border-[#ECECF1] text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Filter className={`w-5 h-5 ${marginFilter !== 'ALL' ? 'text-red-500' : 'text-gray-500'}`} />
+                    {marginFilter === 'ALL' ? 'Filter' : `Margin: ${marginFilter}`}
+                  </button>
+
+                  {showFilterDropdown && (
+                    <div className="absolute right-0 top-[calc(100%+8px)] w-56 bg-white border border-[#ECECF1] rounded-[16px] shadow-xl py-2 z-50">
+                      <div className="px-4 py-2 text-[12px] font-bold text-gray-400 uppercase tracking-wider border-b border-[#ECECF1] mb-1">
+                        Filter by Margin Priority
+                      </div>
+                      <button 
+                        onClick={() => { setMarginFilter('ALL'); setShowFilterDropdown(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-[14px] font-semibold hover:bg-gray-50 transition-colors ${marginFilter === 'ALL' ? 'text-red-600 bg-red-50/50' : 'text-gray-700'}`}
+                      >
+                        All Quotations
+                      </button>
+                      <button 
+                        onClick={() => { setMarginFilter('STANDARD'); setShowFilterDropdown(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-[14px] font-semibold hover:bg-gray-50 transition-colors ${marginFilter === 'STANDARD' ? 'text-red-600 bg-red-50/50' : 'text-gray-700'}`}
+                      >
+                        Standard (High Margin &gt;19%)
+                      </button>
+                      <button 
+                        onClick={() => { setMarginFilter('HIGH'); setShowFilterDropdown(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-[14px] font-semibold hover:bg-gray-50 transition-colors ${marginFilter === 'HIGH' ? 'text-red-600 bg-red-50/50' : 'text-gray-700'}`}
+                      >
+                        High Priority (10-19%)
+                      </button>
+                      <button 
+                        onClick={() => { setMarginFilter('ESCALATED'); setShowFilterDropdown(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-[14px] font-semibold hover:bg-gray-50 transition-colors ${marginFilter === 'ESCALATED' ? 'text-red-600 bg-red-50/50' : 'text-gray-700'}`}
+                      >
+                        Escalated (Low Margin &lt;10%)
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 <button 
                   onClick={() => navigate('/quotations/new')}
                   className="h-12 px-6 flex items-center gap-2 bg-gradient-to-r from-red-600 to-orange-400 rounded-[16px] text-white font-semibold text-[15px] hover:from-red-700 hover:to-orange-500 transition-colors shadow-md"
@@ -58,7 +113,7 @@ const QuotationListPage = () => {
 
             {/* Main Quotations Table Card */}
             <QuotationTable 
-              quotations={quotations} 
+              quotations={filteredQuotations} 
               page={page} 
               totalPages={totalPages} 
               onPageChange={setPage} 

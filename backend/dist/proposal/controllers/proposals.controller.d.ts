@@ -6,4 +6,9 @@ export declare class ProposalsController {
         id: string;
         message: string;
     }>;
+    generateProposal(body: any, req: any): Promise<{
+        success: boolean;
+        url: string;
+        documentId: string;
+    }>;
 }

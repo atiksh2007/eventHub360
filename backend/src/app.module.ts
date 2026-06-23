@@ -18,6 +18,7 @@ import { JwtAuthGuard } from './shared/auth/jwt-auth.guard';
 
 import { NotificationModule } from './shared/notification/notification.module';
 import { CommentModule } from './shared/comment/comment.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { CommentModule } from './shared/comment/comment.module';
     PricingModule,
     ApprovalModule,
     ProposalModule,
+    AuditLogModule,
   ],
   providers: [
     {
