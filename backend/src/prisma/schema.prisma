@@ -58,7 +58,7 @@ model Quotation {
 model QuotationLine {
   line_id        BigInt     @id @default(autoincrement())
   quotation_id   BigInt
-  item_type      String     @db.VarChar(20)    // Venue/Package/Vendor/Service
+  item_type      String     @db.VarChar(50)    // Venue/Package/Vendor/Service
   ref_id         BigInt?                       
   description    String     @db.VarChar(200)
   
@@ -230,4 +230,23 @@ model AuditLog {
   created_at     DateTime   @default(now())
 
   @@map("audit_log")
+}
+
+// ==========================================
+// 9. USER TABLE (AUTHENTICATION)
+// ==========================================
+model User {
+  user_id       BigInt   @id @default(autoincrement())
+  email         String   @unique @db.VarChar(255)
+  password_hash String   @db.VarChar(255)
+  role          String   @db.VarChar(50) // 'admin' | 'client'
+  
+  // Implicit Tenant Columns
+  company_id    String   @db.VarChar(50) @default("default-tenant-hub")
+  tenant_id     String   @db.VarChar(50) @default("default-tenant-hub")
+  
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@map("user")
 }

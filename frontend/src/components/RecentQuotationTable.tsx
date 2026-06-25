@@ -4,12 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 
 const getStatusStyle = (status: any) => {
-  switch (status) {
-    case 'Accepted': return 'bg-emerald-50 text-emerald-600 border border-emerald-200';
-    case 'Sent': return 'bg-amber-50 text-amber-600 border border-amber-200';
-    case 'Draft': return 'bg-purple-50 text-purple-600 border border-purple-200';
-    default: return 'bg-gray-50 text-gray-600 border border-gray-200';
-  }
+  const normalized = (status || '').toLowerCase();
+  if (normalized === 'accepted') return 'bg-emerald-50 text-emerald-600 border border-emerald-200';
+  if (normalized === 'sent') return 'bg-amber-50 text-amber-600 border border-amber-200';
+  if (normalized === 'draft') return 'bg-purple-50 text-purple-600 border border-purple-200';
+  if (normalized.includes('pending')) return 'bg-blue-50 text-blue-600 border border-blue-200';
+  return 'bg-gray-50 text-gray-600 border border-gray-200';
 };
 
 const RecentQuotationTable = ({ quotations }: any) => {
@@ -89,8 +89,8 @@ const RecentQuotationTable = ({ quotations }: any) => {
                   {quote.amount || quote.totalAmount}
                 </td>
                 <td className="py-4 px-6">
-                  <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${getStatusStyle(quote.status)}`}>
-                    {quote.status}
+                  <span className={`inline-flex items-center whitespace-nowrap px-2.5 py-1 rounded-md text-[11px] font-bold capitalize ${getStatusStyle(quote.status)}`}>
+                    {(quote.status || '').replace(/_/g, ' ')}
                   </span>
                 </td>
               </tr>

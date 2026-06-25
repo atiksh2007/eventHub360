@@ -14,7 +14,7 @@ const headerTabs = [
   { label: 'History', active: true },
 ];
 
-const categoryTabsList = ['Venues', 'Packages', 'Vendors', 'Services'];
+const categoryTabsList = ['Venues', 'Floral', 'Catering', 'Music and Entertainment'];
 
 
 
@@ -64,8 +64,7 @@ const PriceBookHeader = () => (
   </div>
 );
 
-const CategoryTabs = () => {
-  const [activeTab, setActiveTab] = useState('Venues');
+const CategoryTabs = ({ activeTab, setActiveTab }: any) => {
   const [seasonalPricing, setSeasonalPricing] = useState(false);
   const [viewMode, setViewMode] = useState('grid');
 
@@ -247,6 +246,7 @@ const PriceBookPagination = () => (
 // ==========================================
 
 const GlobalPriceBook = () => {
+  const [activeTab, setActiveTab] = useState('Venues');
   const [venues, setVenues] = useState<any[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -263,8 +263,10 @@ const GlobalPriceBook = () => {
 
   React.useEffect(() => {
     import('../services/api').then(({ api }) => {
-      api.getPriceBook('venues').then((data: any) => {
-        if (data && data.items && data.items.length > 0) {
+      let category = activeTab.toLowerCase();
+      if (category === 'music and entertainment') category = 'entertainment';
+      api.getPriceBook(category).then((data: any) => {
+        if (data && data.items) {
           const apiVenues = data.items.map((v: any) => ({
             id: v.id,
             title: v.title,
@@ -281,13 +283,16 @@ const GlobalPriceBook = () => {
         }
       }).catch(console.error);
     });
-  }, []);
+  }, [activeTab]);
 
   const handleSaveRateCard = async () => {
     try {
       const { api } = await import('../services/api');
+      let cat = activeTab.toLowerCase();
+      if (cat === 'music and entertainment') cat = 'entertainment';
       const payload = {
         ...formData,
+        category: cat,
         imageUrl: formData.imageUrl || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80'
       };
       const res = await api.createRateCard(payload);
@@ -363,7 +368,7 @@ const GlobalPriceBook = () => {
           </div>
 
           {/* Category Filter Bar */}
-          <CategoryTabs />
+          <CategoryTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
           {/* Price Book Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

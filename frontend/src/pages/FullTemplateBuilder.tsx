@@ -2,12 +2,73 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Eye, Save, Settings, Layout, Image, 
-  Type, Palette, Plus, ChevronRight, Layers, FileText, Move
+  Type, Palette, Plus, ChevronRight, Layers, FileText, Move, Trash2, Upload
 } from 'lucide-react';
+
+type ElementType = 'header' | 'text' | 'image' | 'pricing';
+
+interface CanvasElement {
+  id: string;
+  type: ElementType;
+  content?: string;
+  url?: string;
+  color?: string;
+  fontSize?: string;
+  borderRadius?: string;
+}
 
 const FullTemplateBuilder = ({ isBlank = false  }: any) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('sections');
+  const [elements, setElements] = useState<CanvasElement[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+
+  const handleSaveDraft = () => {
+    setIsSaving(true);
+    setTimeout(() => {
+      setIsSaving(false);
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 2000);
+    }, 1000);
+  };
+
+  const addElement = (type: ElementType) => {
+    const newEl: CanvasElement = {
+      id: Math.random().toString(36).substr(2, 9),
+      type,
+      content: type === 'header' ? 'New Header' : type === 'text' ? 'Start typing your text here...' : undefined,
+      url: type === 'image' ? 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&q=80' : undefined,
+      color: '#111827',
+      fontSize: type === 'header' ? '42px' : '16px',
+      borderRadius: '16px'
+    };
+    setElements([...elements, newEl]);
+    setSelectedId(newEl.id);
+  };
+
+  const updateElement = (id: string, updates: Partial<CanvasElement>) => {
+    setElements(elements.map(el => el.id === id ? { ...el, ...updates } : el));
+  };
+  
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && selectedId) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          updateElement(selectedId, { url: event.target.result as string });
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const deleteElement = (id: string) => {
+    setElements(elements.filter(el => el.id !== id));
+    if (selectedId === id) setSelectedId(null);
+  };
 
   return (
     <div className="flex h-screen bg-[#F8F9FC] font-sans overflow-hidden">
@@ -46,13 +107,17 @@ const FullTemplateBuilder = ({ isBlank = false  }: any) => {
               </div>
 
               {[
-                { name: 'Cover Page', icon: Image },
-                { name: 'Welcome Letter', icon: Type },
-                { name: 'Event Vision', icon: Layout },
-                { name: 'Pricing Breakdown', icon: FileText }
+                { name: 'Header', icon: Type, type: 'header' },
+                { name: 'Text Block', icon: Type, type: 'text' },
+                { name: 'Image Cover', icon: Image, type: 'image' },
+                { name: 'Pricing Table', icon: FileText, type: 'pricing' }
               ].map((section: any, idx: any) => (
-                <div key={idx} className="bg-white border border-[#ECECF1] rounded-[12px] p-3 flex items-center gap-3 shadow-sm cursor-grab hover:border-red-300 transition-colors group">
-                  <Move className="w-4 h-4 text-gray-300 group-hover:text-gray-500" />
+                <div 
+                  key={idx} 
+                  onClick={() => addElement(section.type as ElementType)}
+                  className="bg-white border border-[#ECECF1] rounded-[12px] p-3 flex items-center gap-3 shadow-sm cursor-pointer hover:border-red-300 hover:shadow-md transition-all group"
+                >
+                  <Plus className="w-4 h-4 text-gray-300 group-hover:text-red-500 transition-colors" />
                   <div className="w-8 h-8 rounded-lg bg-[#F8F5FF] text-red-600 flex items-center justify-center shrink-0">
                     <section.icon className="w-4 h-4" />
                   </div>
@@ -108,8 +173,20 @@ const FullTemplateBuilder = ({ isBlank = false  }: any) => {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <button className="px-4 py-2 text-[13px] font-bold text-gray-600 hover:text-gray-900 flex items-center gap-2">
-              <Save className="w-4 h-4" /> Save Draft
+            <button 
+              onClick={handleSaveDraft}
+              className={`px-4 py-2 text-[13px] font-bold flex items-center justify-center gap-2 rounded-lg transition-colors min-w-[120px] ${
+                isSaved ? 'text-emerald-600 bg-emerald-50' : 
+                'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
+            >
+              {isSaving ? (
+                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+              ) : isSaved ? (
+                <>Saved as Draft!</>
+              ) : (
+                <><Save className="w-4 h-4" /> Save Draft</>
+              )}
             </button>
             <button 
               onClick={() => navigate('/templates/1/preview')}
@@ -124,36 +201,62 @@ const FullTemplateBuilder = ({ isBlank = false  }: any) => {
         </div>
 
         {/* CANVAS */}
-        <main className="flex-1 overflow-y-auto p-8 pt-24 pb-24 flex justify-center">
-          <div className="w-[850px] min-h-[1100px] bg-white shadow-xl flex flex-col relative transition-all duration-300 group ring-1 ring-gray-200">
-            {isBlank ? (
+        <main className="flex-1 overflow-y-auto p-8 pt-24 pb-24 flex justify-center" onClick={() => setSelectedId(null)}>
+          <div 
+            className="w-[850px] min-h-[1100px] bg-white shadow-2xl flex flex-col relative transition-all duration-300 ring-1 ring-gray-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {elements.length === 0 && isBlank ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-20 border-4 border-dashed border-gray-100 m-8 rounded-[24px]">
                 <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-6">
                   <Layout className="w-10 h-10" />
                 </div>
                 <h3 className="text-[24px] font-bold text-gray-400 mb-2">Blank Canvas</h3>
-                <p className="text-[15px] font-medium text-gray-400 max-w-sm">Drag and drop sections from the left sidebar to start building your custom template.</p>
+                <p className="text-[15px] font-medium text-gray-400 max-w-sm">Click sections from the left sidebar to add them to your template.</p>
               </div>
             ) : (
-              <div className="flex-1 p-16 flex flex-col relative">
-                {/* Visual Editor Overlay for existing template */}
-                <div className="absolute inset-0 border-2 border-transparent group-hover:border-red-400 transition-colors pointer-events-none z-10"></div>
+              <div className="flex-1 p-16 flex flex-col gap-6 relative">
+                {!isBlank && elements.length === 0 && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-40">
+                    <p className="text-2xl font-bold text-gray-400">The Eternal Grandeur Base</p>
+                    <p className="text-gray-400 mt-2">Add elements to override this template</p>
+                  </div>
+                )}
                 
-                <div className="flex items-center justify-center mb-16 relative group/element cursor-pointer hover:outline hover:outline-2 hover:outline-red-400 p-4 rounded-md">
-                   <h1 className="text-4xl font-serif text-gray-900 tracking-wider">The Grand Event</h1>
-                </div>
-
-                <div className="w-full aspect-video bg-gray-100 rounded-[16px] mb-12 relative group/element cursor-pointer hover:outline hover:outline-2 hover:outline-red-400 overflow-hidden flex items-center justify-center">
-                  <Image className="w-12 h-12 text-gray-300" />
-                  <span className="absolute bottom-4 right-4 bg-black/50 text-white text-[11px] px-3 py-1 rounded-full backdrop-blur-md">Cover Image Area</span>
-                </div>
-
-                <div className="space-y-6 relative group/element cursor-pointer hover:outline hover:outline-2 hover:outline-red-400 p-4 rounded-md">
-                  <div className="w-full h-4 bg-gray-100 rounded-full"></div>
-                  <div className="w-[90%] h-4 bg-gray-100 rounded-full"></div>
-                  <div className="w-[95%] h-4 bg-gray-100 rounded-full"></div>
-                  <div className="w-[80%] h-4 bg-gray-100 rounded-full"></div>
-                </div>
+                {elements.map(el => (
+                  <div 
+                    key={el.id}
+                    onClick={(e) => { e.stopPropagation(); setSelectedId(el.id); }}
+                    className={`relative group cursor-pointer p-4 rounded-[16px] transition-all border-2 ${selectedId === el.id ? 'border-red-500 shadow-lg bg-red-50/10 scale-[1.01]' : 'border-transparent hover:border-gray-200 hover:bg-gray-50'}`}
+                  >
+                    {el.type === 'header' && (
+                      <h1 className="font-serif leading-tight tracking-tight" style={{ color: el.color, fontSize: el.fontSize }}>{el.content}</h1>
+                    )}
+                    {el.type === 'text' && (
+                      <p className="font-sans whitespace-pre-wrap leading-relaxed" style={{ color: el.color, fontSize: el.fontSize }}>{el.content}</p>
+                    )}
+                    {el.type === 'image' && (
+                      <img src={el.url} alt="Template block" className="w-full object-cover shadow-sm" style={{ borderRadius: el.borderRadius, height: '400px' }} />
+                    )}
+                    {el.type === 'pricing' && (
+                      <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
+                        <h3 className="text-2xl font-bold mb-6 font-serif" style={{ color: el.color }}>Investment Summary</h3>
+                        <table className="w-full text-left">
+                          <thead>
+                            <tr className="border-b-2 border-gray-100 text-gray-400 text-sm uppercase tracking-wider">
+                              <th className="pb-3 font-bold">Description</th>
+                              <th className="pb-3 text-right font-bold">Amount</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-50">
+                            <tr><td className="py-4 text-[15px] font-medium text-gray-700">Premium Package Item</td><td className="py-4 text-right font-bold text-gray-900">$0.00</td></tr>
+                            <tr><td className="py-4 text-[15px] font-medium text-gray-700">Add-on Service</td><td className="py-4 text-right font-bold text-gray-900">$0.00</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -188,7 +291,83 @@ const FullTemplateBuilder = ({ isBlank = false  }: any) => {
 
           <div className="bg-white rounded-[16px] p-4 border border-[#ECECF1] shadow-sm">
             <h4 className="text-[12px] font-bold text-gray-400 uppercase mb-4">Element Styles</h4>
-            <p className="text-[13px] text-gray-400 text-center py-4">Select an element on the canvas to edit its properties.</p>
+            {!selectedId ? (
+              <p className="text-[13px] text-gray-400 text-center py-4">Select an element on the canvas to edit its properties.</p>
+            ) : (
+              <div className="space-y-4">
+                {elements.find(e => e.id === selectedId)?.type === 'image' && (
+                  <>
+                    <div>
+                      <label className="text-[12px] font-semibold text-gray-600 mb-1 block">Image URL</label>
+                      <input 
+                        type="text" 
+                        value={elements.find(e => e.id === selectedId)?.url || ''} 
+                        onChange={(e) => updateElement(selectedId, { url: e.target.value })}
+                        className="w-full px-3 py-2 bg-[#F8F9FC] border border-[#ECECF1] rounded-lg text-sm focus:outline-none focus:border-red-300" 
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[12px] font-semibold text-gray-600 mb-1 block">Upload from Device</label>
+                      <label className="w-full px-3 py-2 bg-[#F8F9FC] border border-[#ECECF1] rounded-lg text-[13px] font-medium text-gray-600 flex items-center justify-center gap-2 cursor-pointer hover:bg-gray-50 transition-colors shadow-sm">
+                        <Upload className="w-4 h-4" /> Choose File
+                        <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                      </label>
+                    </div>
+                    <div>
+                      <label className="text-[12px] font-semibold text-gray-600 mb-1 block">Border Radius</label>
+                      <input 
+                        type="text" 
+                        value={elements.find(e => e.id === selectedId)?.borderRadius || ''} 
+                        onChange={(e) => updateElement(selectedId, { borderRadius: e.target.value })}
+                        className="w-full px-3 py-2 bg-[#F8F9FC] border border-[#ECECF1] rounded-lg text-sm focus:outline-none focus:border-red-300" 
+                      />
+                    </div>
+                  </>
+                )}
+                {(elements.find(e => e.id === selectedId)?.type === 'header' || elements.find(e => e.id === selectedId)?.type === 'text') && (
+                  <>
+                    <div>
+                      <label className="text-[12px] font-semibold text-gray-600 mb-1 block">Content</label>
+                      <textarea 
+                        value={elements.find(e => e.id === selectedId)?.content || ''} 
+                        onChange={(e) => updateElement(selectedId, { content: e.target.value })}
+                        className="w-full px-3 py-2 bg-[#F8F9FC] border border-[#ECECF1] rounded-lg text-sm focus:outline-none focus:border-red-300" 
+                        rows={4}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[12px] font-semibold text-gray-600 mb-1 block">Font Size</label>
+                      <input 
+                        type="text" 
+                        value={elements.find(e => e.id === selectedId)?.fontSize || ''} 
+                        onChange={(e) => updateElement(selectedId, { fontSize: e.target.value })}
+                        className="w-full px-3 py-2 bg-[#F8F9FC] border border-[#ECECF1] rounded-lg text-sm focus:outline-none focus:border-red-300" 
+                      />
+                    </div>
+                  </>
+                )}
+                {elements.find(e => e.id === selectedId)?.type !== 'image' && (
+                  <div>
+                    <label className="text-[12px] font-semibold text-gray-600 mb-1 block">Color Code</label>
+                    <input 
+                      type="text" 
+                      value={elements.find(e => e.id === selectedId)?.color || ''} 
+                      onChange={(e) => updateElement(selectedId, { color: e.target.value })}
+                      className="w-full px-3 py-2 bg-[#F8F9FC] border border-[#ECECF1] rounded-lg text-sm focus:outline-none focus:border-red-300" 
+                      placeholder="#000000"
+                    />
+                  </div>
+                )}
+                <div className="pt-4 border-t border-gray-100">
+                  <button 
+                    onClick={() => deleteElement(selectedId)}
+                    className="w-full py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg text-[13px] font-bold hover:bg-red-100 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                  >
+                    <Trash2 className="w-4 h-4" /> Delete Element
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
         </div>

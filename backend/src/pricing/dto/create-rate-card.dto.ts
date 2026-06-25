@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsInt} from 'class-validator';
+import { IsString, IsNotEmpty, IsInt, IsOptional } from 'class-validator';
 
 export class CreateRateCardDto {
 
@@ -42,4 +42,8 @@ export class CreateRateCardDto {
   @IsString()
   @IsNotEmpty()
   imageUrl: string;
+
+  @IsString()
+  @IsOptional()
+  category?: string;
 }

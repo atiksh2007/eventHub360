@@ -22,20 +22,31 @@ const QuotationTableEditor = ({ items, onAdd, onDelete, onUpdate, availableItems
               return (
                 <tr key={item.id} className="border-b border-[#ECECF1] hover:bg-gray-50/50 transition-colors group">
                   <td className="py-4 pr-4">
-                    <input
-                      type="text"
-                      list={availableItems ? `options-${item.id}` : undefined}
-                      value={item.description}
-                      onChange={(e) => onUpdate(item.id, 'description', e.target.value)}
-                      className="w-full h-9 px-3 bg-transparent border border-transparent rounded-[8px] text-[14px] font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:bg-gray-50 focus:border-gray-200 transition-all"
-                      placeholder="Item description..."
-                    />
-                    {availableItems && (
-                      <datalist id={`options-${item.id}`}>
-                        {availableItems.map((opt: any, i: number) => (
-                          <option key={i} value={opt.title} />
-                        ))}
-                      </datalist>
+                    {availableItems && availableItems.length > 0 ? (
+                      <div className="relative">
+                        <select
+                          value={item.description}
+                          onChange={(e) => onUpdate(item.id, 'description', e.target.value)}
+                          className="w-full h-9 px-3 pr-8 bg-transparent border border-transparent hover:border-gray-200 rounded-[8px] text-[14px] font-medium text-gray-900 focus:outline-none focus:bg-gray-50 focus:border-red-300 transition-all appearance-none cursor-pointer"
+                        >
+                          <option value="New Item" disabled>Select an item from catalog...</option>
+                          <option value="Custom Item">Custom Item...</option>
+                          {availableItems.map((opt: any, i: number) => (
+                            <option key={i} value={opt.title}>{opt.title}</option>
+                          ))}
+                        </select>
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        value={item.description}
+                        onChange={(e) => onUpdate(item.id, 'description', e.target.value)}
+                        className="w-full h-9 px-3 bg-transparent border border-transparent rounded-[8px] text-[14px] font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:bg-gray-50 focus:border-gray-200 transition-all"
+                        placeholder="Item description..."
+                      />
                     )}
                   </td>
                   <td className="py-4 px-4">
