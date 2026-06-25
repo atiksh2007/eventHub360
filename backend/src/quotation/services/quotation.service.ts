@@ -617,22 +617,92 @@ export class QuotationService implements OnModuleInit {
     { id: "4", title: "The Verdant Atrium", tag: "Eco-Lounge", capacityDetails: "Indoor garden setting with sustainable climate control and living walls.", basePricing: "$4,500", pricingUnit: "day", adjustmentLabel: "+20% Seasonal", adjustmentSubtext: "Estimated Total", estimatedTotal: "$5,400", imageUrl: "https://images.unsplash.com/photo-1505843513577-22bb7d21e455?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
     { id: "5", title: "The Reserve Cellar", tag: "Private Reserve", capacityDetails: "Intimate underground tasting room. Private barrel backdrop.", basePricing: "$2,800", pricingUnit: "night", adjustmentLabel: "Sommelier Incl.", adjustmentSubtext: "Exclusive Access", estimatedTotal: "$2,800", imageUrl: "https://images.unsplash.com/photo-1543362906-acfc16c67564?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
     { id: "6", title: "Manor Estate Tent", tag: "Estate Grounds", capacityDetails: "All-weather luxury marquee on estate lawn. Floor-to-ceiling windows.", basePricing: "$15,000", pricingUnit: "event", adjustmentLabel: "+5% Logistics", adjustmentSubtext: "Setup Included", estimatedTotal: "$15,750", imageUrl: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
-    { id: "7", title: "Industrial Loft 402", tag: "Urban Chic", capacityDetails: "Flexible studio space for product launches and creative workshops.", basePricing: "$3,200", pricingUnit: "day", adjustmentLabel: "Standard Rate", adjustmentSubtext: "No Surcharge", estimatedTotal: "$3,200", imageUrl: "https://images.unsplash.com/photo-1513694203232-719a280e022f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" }
+    { id: "7", title: "Industrial Loft 402", tag: "Urban Chic", capacityDetails: "Flexible studio space for product launches and creative workshops.", basePricing: "$3,200", pricingUnit: "day", adjustmentLabel: "Standard Rate", adjustmentSubtext: "No Surcharge", estimatedTotal: "$3,200", imageUrl: "https://images.unsplash.com/photo-1513694203232-719a280e022f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    // Template Additions
+    { id: "t1_v1", title: "Grand Ballroom Venue", tag: "Luxury Venue", capacityDetails: "Massive ballroom suitable for grand luxury weddings. Max 300 guests.", basePricing: "$15,000", pricingUnit: "event", adjustmentLabel: "Standard", adjustmentSubtext: "Flat Rate", estimatedTotal: "$15,000", imageUrl: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    { id: "t2_v1", title: "Main Conference Hall", tag: "Corporate Venue", capacityDetails: "Auditorium style seating. Max 1,000 attendees. Built-in screens.", basePricing: "$12,000", pricingUnit: "day", adjustmentLabel: "Standard", adjustmentSubtext: "Flat Rate", estimatedTotal: "$12,000", imageUrl: "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    { id: "t3_v1", title: "Penthouse Suite (3 nights)", tag: "Boutique Venue", capacityDetails: "Exclusive penthouse suite for private dinners and stays. Max 30 guests.", basePricing: "$4,000", pricingUnit: "stay", adjustmentLabel: "Standard", adjustmentSubtext: "Flat Rate", estimatedTotal: "$4,000", imageUrl: "https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    { id: "t4_v1", title: "Garden Venue Hire", tag: "Outdoor Venue", capacityDetails: "Beautiful botanical garden open space. Max 200 guests.", basePricing: "$6,000", pricingUnit: "day", adjustmentLabel: "Standard", adjustmentSubtext: "Flat Rate", estimatedTotal: "$6,000", imageUrl: "https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    { id: "t5_v1", title: "Luxury Ballroom Rental", tag: "Luxury Gala Venue", capacityDetails: "Iconic high-ceiling luxury ballroom for prestigious galas. Max 400 guests.", basePricing: "$25,000", pricingUnit: "event", adjustmentLabel: "Standard", adjustmentSubtext: "Flat Rate", estimatedTotal: "$25,000", imageUrl: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" }
+  ];
+
+  private mockCatering = [
+    { id: "c1", title: "Gourmet Catering Standard", tag: "Gourmet Services", capacityDetails: "Premium 3-course plated meal including appetizers, main course, and artisan desserts.", basePricing: "$120", pricingUnit: "person", adjustmentLabel: "+18% Gratuity", adjustmentSubtext: "Service Fee", estimatedTotal: "$141", imageUrl: "https://images.unsplash.com/photo-1555244162-803834f70033?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    { id: "c2", title: "Gourmet Buffet Station", tag: "Gourmet Services", capacityDetails: "Global cuisine stations with live carving, pasta bar, and sushi.", basePricing: "$85", pricingUnit: "person", adjustmentLabel: "+18% Gratuity", adjustmentSubtext: "Service Fee", estimatedTotal: "$100", imageUrl: "https://images.unsplash.com/photo-1533777324565-a040b3f8d4e8?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    // Template Additions
+    { id: "t1_c1", title: "Gourmet 5-Course Dinner", tag: "Gourmet Services", capacityDetails: "Luxurious 5-course meal curated by a head chef.", basePricing: "$180", pricingUnit: "person", adjustmentLabel: "Standard", adjustmentSubtext: "Flat Rate", estimatedTotal: "$180", imageUrl: "https://images.unsplash.com/photo-1555244162-803834f70033?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    { id: "t2_c1", title: "Networking Lunch Catering", tag: "Corporate Catering", capacityDetails: "Light, healthy networking buffet suitable for professionals.", basePricing: "$45", pricingUnit: "person", adjustmentLabel: "Standard", adjustmentSubtext: "Flat Rate", estimatedTotal: "$45", imageUrl: "https://images.unsplash.com/photo-1533777324565-a040b3f8d4e8?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    { id: "t3_c1", title: "Private Chef Dinner", tag: "Private Dining", capacityDetails: "Exclusive private dining experience prepared on-site by a personal chef.", basePricing: "$220", pricingUnit: "person", adjustmentLabel: "Standard", adjustmentSubtext: "Flat Rate", estimatedTotal: "$220", imageUrl: "https://images.unsplash.com/photo-1555244162-803834f70033?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    { id: "t4_c1", title: "BBQ & Buffet Catering", tag: "Outdoor Catering", capacityDetails: "Gourmet outdoor BBQ station and fresh buffet spread.", basePricing: "$85", pricingUnit: "person", adjustmentLabel: "Standard", adjustmentSubtext: "Flat Rate", estimatedTotal: "$85", imageUrl: "https://images.unsplash.com/photo-1533777324565-a040b3f8d4e8?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    { id: "t5_c1", title: "Michelin-Grade Dinner Service", tag: "Gourmet Services", capacityDetails: "The ultimate dining experience for VIP galas.", basePricing: "$280", pricingUnit: "person", adjustmentLabel: "Standard", adjustmentSubtext: "Flat Rate", estimatedTotal: "$280", imageUrl: "https://images.unsplash.com/photo-1555244162-803834f70033?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" }
+  ];
+
+  private mockEntertainment = [
+    { id: "e1", title: "Elite Live Band", tag: "Entertainment", capacityDetails: "5-piece live band covering jazz, pop, and classical music for 4 hours.", basePricing: "$4,500", pricingUnit: "event", adjustmentLabel: "Standard Setup", adjustmentSubtext: "Included", estimatedTotal: "$4,500", imageUrl: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    { id: "e2", title: "DJ & Lighting Package", tag: "Music Services", capacityDetails: "Professional DJ with full club-style intelligent lighting and PA system.", basePricing: "$2,200", pricingUnit: "event", adjustmentLabel: "+$200 Travel", adjustmentSubtext: "Out of city limit", estimatedTotal: "$2,400", imageUrl: "https://images.unsplash.com/photo-1516280440502-85f5e71444fb?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    { id: "e3", title: "Acoustic String Quartet", tag: "Music Services", capacityDetails: "Classical strings ensemble perfect for elegant dinners and cocktail hours.", basePricing: "$1,800", pricingUnit: "2-hours", adjustmentLabel: "No Surcharge", adjustmentSubtext: "Flat Rate", estimatedTotal: "$1,800", imageUrl: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    // Template Additions
+    { id: "t1_e1", title: "Live Orchestra (4 hrs)", tag: "Music Services", capacityDetails: "Full 12-piece live orchestra providing elegant background and dance music.", basePricing: "$8,000", pricingUnit: "event", adjustmentLabel: "Standard", adjustmentSubtext: "Flat Rate", estimatedTotal: "$8,000", imageUrl: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    { id: "t2_e1", title: "Full AV & Stage Production", tag: "AV Services", capacityDetails: "Complete stage buildup, lighting, microphones, and screens for conferences.", basePricing: "$18,000", pricingUnit: "event", adjustmentLabel: "Standard", adjustmentSubtext: "Flat Rate", estimatedTotal: "$18,000", imageUrl: "https://images.unsplash.com/photo-1516280440502-85f5e71444fb?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    { id: "t2_e2", title: "Keynote Speaker Package", tag: "Speaker", capacityDetails: "Professional keynote speaker sourcing and management.", basePricing: "$10,000", pricingUnit: "event", adjustmentLabel: "Standard", adjustmentSubtext: "Flat Rate", estimatedTotal: "$10,000", imageUrl: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    { id: "t3_e1", title: "Spa & Wellness Package", tag: "Wellness Services", capacityDetails: "Exclusive hotel spa buy-out for up to 50 guests.", basePricing: "$350", pricingUnit: "person", adjustmentLabel: "Standard", adjustmentSubtext: "Flat Rate", estimatedTotal: "$350", imageUrl: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" },
+    { id: "t5_e1", title: "Celebrity Entertainment", tag: "Entertainment", capacityDetails: "Top-tier celebrity performer booking and green room management.", basePricing: "$20,000", pricingUnit: "event", adjustmentLabel: "Standard", adjustmentSubtext: "Flat Rate", estimatedTotal: "$20,000", imageUrl: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" }
+  ];
+
+  private mockFloral = [
+    { id: "f1", title: "Premium Grand Centerpiece", tag: "Floral", capacityDetails: "Large floral arrangement with seasonal premium blooms and orchids.", basePricing: "$450", pricingUnit: "table", adjustmentLabel: "+10% Setup", adjustmentSubtext: "Installation", estimatedTotal: "$495", imageUrl: "https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&w=800&q=80" },
+    { id: "f2", title: "Aisle Runner Petals", tag: "Decoration", capacityDetails: "Thick layer of fresh rose petals along the entire ceremony aisle.", basePricing: "$850", pricingUnit: "event", adjustmentLabel: "Standard", adjustmentSubtext: "Flat Rate", estimatedTotal: "$850", imageUrl: "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&w=800&q=80" },
+    { id: "f3", title: "Archway Floral Cascade", tag: "Floral", capacityDetails: "Full coverage floral arch for ceremony or entrance.", basePricing: "$1,200", pricingUnit: "event", adjustmentLabel: "+$150 Teardown", adjustmentSubtext: "Post-event", estimatedTotal: "$1,350", imageUrl: "https://images.unsplash.com/photo-1469371670807-013ccf25f16a?auto=format&fit=crop&w=800&q=80" },
+    // Template Additions
+    { id: "t1_f1", title: "Premium Floral Arrangements", tag: "Floral", capacityDetails: "Opulent floral arrangements for tables, walkways, and stages.", basePricing: "$5,000", pricingUnit: "event", adjustmentLabel: "Standard", adjustmentSubtext: "Flat Rate", estimatedTotal: "$5,000", imageUrl: "https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&w=800&q=80" },
+    { id: "t4_f1", title: "Rustic Floral Decor", tag: "Floral", capacityDetails: "Beautiful organic rustic floral elements tailored for garden environments.", basePricing: "$2,800", pricingUnit: "event", adjustmentLabel: "Standard", adjustmentSubtext: "Flat Rate", estimatedTotal: "$2,800", imageUrl: "https://images.unsplash.com/photo-1469371670807-013ccf25f16a?auto=format&fit=crop&w=800&q=80" },
+    { id: "t4_f2", title: "Tent & Marquee Setup", tag: "Decoration", capacityDetails: "Elegant outdoor canopy with clear ceilings and draped fabric.", basePricing: "$4,500", pricingUnit: "event", adjustmentLabel: "Standard", adjustmentSubtext: "Flat Rate", estimatedTotal: "$4,500", imageUrl: "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&w=800&q=80" },
+    { id: "t5_f1", title: "Premium Decor & Lighting", tag: "Decoration", capacityDetails: "High-end luxury drapery, candelabras, and intelligent ambient lighting.", basePricing: "$12,000", pricingUnit: "event", adjustmentLabel: "Standard", adjustmentSubtext: "Flat Rate", estimatedTotal: "$12,000", imageUrl: "https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&w=800&q=80" },
+    { id: "t3_f1", title: "Terrace Event Setup", tag: "Decoration", capacityDetails: "Boutique outdoor terrace staging with bespoke furniture.", basePricing: "$3,000", pricingUnit: "event", adjustmentLabel: "Standard", adjustmentSubtext: "Flat Rate", estimatedTotal: "$3,000", imageUrl: "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&w=800&q=80" }
   ];
 
   async getQuotationHistoryPriceBook(category?: string): Promise<PriceBookResponse> {
+    const lowerCat = category?.toLowerCase() || 'venues';
+    
+    let data: any[] = [];
+    let avgRateLabel = '';
+    let avgRateValue = '';
+
+    if (lowerCat === 'catering') {
+      data = this.mockCatering;
+      avgRateLabel = 'Avg. Catering Rate';
+      avgRateValue = '$102';
+    } else if (lowerCat === 'entertainment') {
+      data = this.mockEntertainment;
+      avgRateLabel = 'Avg. Entertainment Rate';
+      avgRateValue = '$2,833';
+    } else if (lowerCat === 'floral') {
+      data = this.mockFloral;
+      avgRateLabel = 'Avg. Floral Rate';
+      avgRateValue = '$833';
+    } else if (lowerCat === 'services') {
+      // Keep services as a fallback containing both
+      data = [...this.mockCatering, ...this.mockEntertainment, ...this.mockFloral];
+      avgRateLabel = 'Avg. Service Rate';
+      avgRateValue = '$1,720';
+    } else {
+      data = this.mockVenues;
+      avgRateLabel = 'Avg. Venue Rate';
+      avgRateValue = '$7,440';
+    }
+    
     return {
-      category: category || "venues",
-      totalItems: this.mockVenues.length,
-      avgRateLabel: "Avg. Venue Rate",
-      avgRateValue: "$7,440",
-      items: this.mockVenues
+      category: lowerCat,
+      totalItems: data.length,
+      avgRateLabel,
+      avgRateValue,
+      items: data
     };
   }
 
   async createPriceBookRate(dto: CreateRateCardDto): Promise<RateCardItem> {
     const newVenue = {
-      id: "VNU-" + Date.now(),
+      id: (dto.category || "VNU").substring(0,3).toUpperCase() + "-" + Date.now(),
       title: dto.title,
       tag: dto.tag || "VENUE",
       capacityDetails: dto.capacityDetails || "",
@@ -643,7 +713,18 @@ export class QuotationService implements OnModuleInit {
       estimatedTotal: dto.estimatedTotal || "",
       imageUrl: dto.imageUrl || ""
     };
-    this.mockVenues.push(newVenue);
+
+    const cat = dto.category?.toLowerCase() || 'venues';
+    if (cat === 'catering') {
+      this.mockCatering.push(newVenue);
+    } else if (cat === 'entertainment') {
+      this.mockEntertainment.push(newVenue);
+    } else if (cat === 'floral') {
+      this.mockFloral.push(newVenue);
+    } else {
+      this.mockVenues.push(newVenue);
+    }
+
     return newVenue;
   }
 }

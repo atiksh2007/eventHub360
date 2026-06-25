@@ -118,6 +118,13 @@ const TemplateDetails = () => {
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 <button 
+                  onClick={() => navigate('/templates/1/edit')}
+                  className="h-12 px-6 flex items-center gap-2 bg-white border border-[#ECECF1] text-gray-700 rounded-full font-bold text-[14px] hover:bg-gray-50 transition-colors shadow-sm"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Edit Template
+                </button>
+                <button 
                   onClick={() => navigate('/templates/1/preview')}
                   className="h-12 px-6 flex items-center gap-2 bg-white border border-[#ECECF1] text-gray-700 rounded-full font-bold text-[14px] hover:bg-gray-50 transition-colors shadow-sm"
                 >

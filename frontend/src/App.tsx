@@ -1,6 +1,9 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import ErrorBoundary from './ErrorBoundary';
+import ProtectedRoute from './components/ProtectedRoute';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import QuotationDashboard from './pages/QuotationDashboard';
 import QuotationListPage from './pages/QuotationListPage';
 import CreateQuotationStep1 from './pages/CreateQuotationStep1';
@@ -63,7 +66,13 @@ function App() {
     <ErrorBoundary>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<QuotationDashboard />} />
+          {/* Public Auth Routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+
+          {/* Protected Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<QuotationDashboard />} />
           <Route path="/quotations" element={<QuotationListPage />} />
           <Route path="/quotations/pending" element={<PendingQuotationsCenter />} />
           <Route path="/quotations/approved-center" element={<ApprovedQuotationsDashboard />} />
@@ -139,6 +148,7 @@ function App() {
           <Route path="/client-portal" element={<ClientPortal />} />
           
           <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
         </Routes>
       </BrowserRouter>
     </ErrorBoundary>

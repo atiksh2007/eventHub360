@@ -1,13 +1,30 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Public } from './public.decorator';
+import { AuthService } from './auth.service';
 
-@Controller('dev')
+@Controller('auth')
 export class AuthController {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly authService: AuthService,
+  ) {}
 
   @Public()
-  @Get('token')
+  @Post('register')
+  async register(@Body() body: any) {
+    return this.authService.register(body.email, body.password, body.role || 'client');
+  }
+
+  @Public()
+  @Post('login')
+  async login(@Body() body: any) {
+    return this.authService.login(body.email, body.password);
+  }
+
+  // Keeping dev token just in case
+  @Public()
+  @Get('dev/token')
   getDevToken(@Query('role') role: string = 'sales_exec') {
     const payload = {
       userId: 1,

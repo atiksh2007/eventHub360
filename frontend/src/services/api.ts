@@ -6,18 +6,7 @@ const BASE_URL = import.meta.env.VITE_API_URL
 const TENANT_ID = import.meta.env.VITE_TENANT_ID || 'default-tenant-hub';
 
 export const apiFetch = async (path: string, options: RequestInit = {}) => {
-  let token = localStorage.getItem('dev_jwt');
-  
-  if (!token && !path.includes('/dev/token')) {
-    try {
-      const res = await fetch(`${BASE_URL}/dev/token?role=sales_exec`);
-      const data = await res.json();
-      token = data.access_token;
-      localStorage.setItem('dev_jwt', token || '');
-    } catch (e) {
-      console.warn('Failed to fetch dev token');
-    }
-  }
+  const token = localStorage.getItem('jwt_token');
 
   const headers = {
     'Content-Type': 'application/json',
@@ -30,9 +19,13 @@ export const apiFetch = async (path: string, options: RequestInit = {}) => {
     headers,
   });
 
-  if (response.status === 401 && !(options as any)._retry) {
-    localStorage.removeItem('dev_jwt');
-    return apiFetch(path, { ...options, _retry: true } as any);
+  if (response.status === 401) {
+    localStorage.removeItem('jwt_token');
+    localStorage.removeItem('user_data');
+    if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+      window.location.href = '/login';
+    }
+    throw new Error('Unauthorized');
   }
 
   if (!response.ok) {
@@ -43,6 +36,10 @@ export const apiFetch = async (path: string, options: RequestInit = {}) => {
 };
 
 export const api = {
+  // Auth
+  login: (data: any) => apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+  register: (data: any) => apiFetch('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+
   // Quotes
   getLiveList: (status: string = 'all', page: number = 1, limit: number = 10) => apiFetch(`/quotes/live-list?status=${status}&page=${page}&limit=${limit}`),
   deleteQuote: (id: string) => apiFetch(`/quotes/${id}`, { method: 'DELETE' }),

@@ -8,9 +8,10 @@ import {
 const TemplateApplicationWizard = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
+  const [selectedDraftId, setSelectedDraftId] = useState('Q-8829');
 
   const steps = [
-    { id: 1, title: 'Select Client', icon: User },
+    { id: 1, title: 'Select Quotation', icon: FileText },
     { id: 2, title: 'Event Type', icon: Calendar },
     { id: 3, title: 'Branding', icon: Palette },
     { id: 4, title: 'Sections', icon: Layout },
@@ -21,7 +22,7 @@ const TemplateApplicationWizard = () => {
 
   const handleNext = () => {
     if (currentStep < 7) setCurrentStep(currentStep + 1);
-    else navigate('/quotations/new'); // Proceeds to quotation builder
+    else navigate(`/quotation-builder?id=${selectedDraftId}`); // Proceeds to quotation builder
   };
 
   const handleBack = () => {
@@ -99,17 +100,42 @@ const TemplateApplicationWizard = () => {
             
             {currentStep === 1 && (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <h2 className="text-[28px] font-bold text-gray-900 mb-2">Select Client</h2>
-                <p className="text-gray-500 mb-8">Who is this proposal for? Choose an existing client or create a new one.</p>
+                <h2 className="text-[28px] font-bold text-gray-900 mb-2">Select Quotation Draft</h2>
+                <p className="text-gray-500 mb-8">Which quotation draft should this template be applied to?</p>
                 
                 <div className="space-y-4">
-                  <input type="text" placeholder="Search clients..." className="w-full px-5 py-4 bg-[#F8F9FC] border border-[#ECECF1] rounded-[16px] text-[15px] focus:outline-none focus:border-red-300" />
-                  <div className="p-5 rounded-[16px] border-2 border-red-700 bg-red-50 flex items-center gap-4 cursor-pointer">
-                    <div className="w-12 h-12 rounded-full bg-red-200"></div>
-                    <div>
-                      <p className="font-bold text-gray-900">Grand Plaza Hotel</p>
-                      <p className="text-[13px] text-gray-500">marcus@grandplaza.com</p>
+                  <input type="text" placeholder="Search your drafts..." className="w-full px-5 py-4 bg-[#F8F9FC] border border-[#ECECF1] rounded-[16px] text-[15px] focus:outline-none focus:border-red-300" />
+                  
+                  <div 
+                    onClick={() => setSelectedDraftId('Q-8829')}
+                    className={`p-5 rounded-[16px] border-2 flex items-center justify-between cursor-pointer transition-colors ${selectedDraftId === 'Q-8829' ? 'border-red-700 bg-red-50' : 'border-[#ECECF1] hover:border-red-200 bg-white'}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-900">Royal Wedding Gala (Q-8829)</p>
+                        <p className="text-[13px] text-gray-500">Draft • Grand Plaza Hotel</p>
+                      </div>
                     </div>
+                    {selectedDraftId === 'Q-8829' && <CheckCircle className="w-5 h-5 text-red-600" />}
+                  </div>
+
+                  <div 
+                    onClick={() => setSelectedDraftId('Q-9014')}
+                    className={`p-5 rounded-[16px] border-2 flex items-center justify-between cursor-pointer transition-colors ${selectedDraftId === 'Q-9014' ? 'border-red-700 bg-red-50' : 'border-[#ECECF1] hover:border-red-200 bg-white'}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-900">Tech Summit 2026 (Q-9014)</p>
+                        <p className="text-[13px] text-gray-500">Draft • Innovate Inc.</p>
+                      </div>
+                    </div>
+                    {selectedDraftId === 'Q-9014' && <CheckCircle className="w-5 h-5 text-red-600" />}
                   </div>
                 </div>
               </div>
@@ -159,8 +185,8 @@ const TemplateApplicationWizard = () => {
                   <CheckCircle className="w-12 h-12" />
                 </div>
                 <h2 className="text-[32px] font-bold text-gray-900 mb-2">Ready to Go!</h2>
-                <p className="text-gray-500 mb-8 max-w-sm mx-auto">The template has been successfully configured. You can now jump into the quotation builder to finalize pricing.</p>
-                <button onClick={() => navigate('/quotation-builder')} className="px-8 py-4 bg-gradient-to-r from-red-700 to-orange-400 text-white rounded-full font-bold text-[16px] hover:shadow-lg transition-shadow">
+                <p className="text-gray-500 mb-8 max-w-sm mx-auto">The template has been successfully configured and injected into {selectedDraftId}. You can now jump into the quotation builder to finalize pricing.</p>
+                <button onClick={() => navigate(`/quotation-builder?id=${selectedDraftId}`)} className="px-8 py-4 bg-gradient-to-r from-red-700 to-orange-400 text-white rounded-full font-bold text-[16px] hover:shadow-lg transition-shadow">
                   Open Quotation Builder
                 </button>
               </div>

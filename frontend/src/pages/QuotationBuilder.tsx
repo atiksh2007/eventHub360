@@ -40,6 +40,9 @@ const QuotationBuilder = () => {
   });
 
   const [priceBookVenues, setPriceBookVenues] = useState<any[]>([]);
+  const [priceBookCatering, setPriceBookCatering] = useState<any[]>([]);
+  const [priceBookEntertainment, setPriceBookEntertainment] = useState<any[]>([]);
+  const [priceBookFloral, setPriceBookFloral] = useState<any[]>([]);
 
   // Load from backend on mount
   useEffect(() => {
@@ -75,6 +78,42 @@ const QuotationBuilder = () => {
             categoryName: 'Venue Selection',
           });
         }
+
+        // Auto-inject default Floral if empty
+        if (rebuilt['Floral & Decoration'].length === 0) {
+          rebuilt['Floral & Decoration'].push({
+            id: Math.random().toString(36).substr(2, 9),
+            description: 'Premium Grand Centerpiece',
+            qty: 10, // Default to 10 tables
+            price: 450, // Default price from our catalog
+            discount: 0,
+            categoryName: 'Floral & Decoration',
+          });
+        }
+
+        // Auto-inject default Catering if empty
+        if (rebuilt['Gourmet Catering'].length === 0) {
+          rebuilt['Gourmet Catering'].push({
+            id: Math.random().toString(36).substr(2, 9),
+            description: 'Gourmet Catering Standard',
+            qty: res.expectedGuests || 100, // Default to 100 or expected guests
+            price: 120, // Default price from our catalog
+            discount: 0,
+            categoryName: 'Gourmet Catering',
+          });
+        }
+
+        // Auto-inject default Entertainment if empty
+        if (rebuilt['Entertainment & Sound'].length === 0) {
+          rebuilt['Entertainment & Sound'].push({
+            id: Math.random().toString(36).substr(2, 9),
+            description: 'Elite Live Band',
+            qty: 1,
+            price: 4500, // Default price from our catalog
+            discount: 0,
+            categoryName: 'Entertainment & Sound',
+          });
+        }
         
         setSections(rebuilt);
       })
@@ -85,9 +124,19 @@ const QuotationBuilder = () => {
 
   useEffect(() => {
     api.getPriceBook('venues').then((data: any) => {
-      if (data && data.items && data.items.length > 0) {
-        setPriceBookVenues(data.items);
-      }
+      if (data && data.items && data.items.length > 0) setPriceBookVenues(data.items);
+    }).catch(console.error);
+
+    api.getPriceBook('floral').then((data: any) => {
+      if (data && data.items && data.items.length > 0) setPriceBookFloral(data.items);
+    }).catch(console.error);
+
+    api.getPriceBook('catering').then((data: any) => {
+      if (data && data.items && data.items.length > 0) setPriceBookCatering(data.items);
+    }).catch(console.error);
+
+    api.getPriceBook('entertainment').then((data: any) => {
+      if (data && data.items && data.items.length > 0) setPriceBookEntertainment(data.items);
     }).catch(console.error);
   }, []);
 
@@ -145,13 +194,19 @@ const QuotationBuilder = () => {
     setSections(prev => {
       let additionalUpdates: any = {};
       
-      if (sectionKey === 'Venue Selection' && field === 'description') {
-        const matchedVenue = priceBookVenues.find(v => v.title === value);
-        if (matchedVenue) {
-          const rawPrice = String(matchedVenue.price || matchedVenue.basePricing || '0').replace(/[^0-9.]/g, '');
+      if (field === 'description') {
+        let catalog: any[] = [];
+        if (sectionKey === 'Venue Selection') catalog = priceBookVenues;
+        if (sectionKey === 'Floral & Decoration') catalog = priceBookFloral;
+        if (sectionKey === 'Gourmet Catering') catalog = priceBookCatering;
+        if (sectionKey === 'Entertainment & Sound') catalog = priceBookEntertainment;
+        
+        const matchedItem = catalog.find(v => v.title === value);
+        if (matchedItem) {
+          const rawPrice = String(matchedItem.price || matchedItem.basePricing || '0').replace(/[^0-9.]/g, '');
           additionalUpdates.price = parseFloat(rawPrice) || 0;
           additionalUpdates.qty = 1;
-        } else {
+        } else if (catalog.length > 0) { // Only reset to 0 if it was meant to be from catalog but didn't match
           additionalUpdates.price = 0;
         }
       }
@@ -307,7 +362,13 @@ const QuotationBuilder = () => {
                         onAdd={() => handleAdd(key)}
                         onUpdate={(id: any, f: any, v: any) => handleUpdate(key, id, f, v)}
                         onDelete={(id: any) => handleDelete(key, id)}
-                        availableItems={key === 'Venue Selection' ? priceBookVenues : undefined}
+                        availableItems={
+                          key === 'Venue Selection' ? priceBookVenues : 
+                          key === 'Floral & Decoration' ? priceBookFloral : 
+                          key === 'Gourmet Catering' ? priceBookCatering : 
+                          key === 'Entertainment & Sound' ? priceBookEntertainment : 
+                          undefined
+                        }
                       />
                     )}
                   </ServiceAccordion>
