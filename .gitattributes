@@ -1,0 +1,5 @@
+*.ts linguist-language=TypeScript
+*.tsx linguist-language=TypeScript
+node_modules/* linguist-vendored
+dist/* linguist-vendored
+.vite/* linguist-vendored
